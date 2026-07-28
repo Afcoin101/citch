@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.example.data.CitchFirebaseService
 import com.example.ui.MainLayout
 import com.example.ui.HomeChefViewModel
 import com.example.ui.theme.MyApplicationTheme
@@ -18,6 +19,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Initialize Firebase Authentication, Firestore DB sync, and FCM Push Notifications
+        CitchFirebaseService.initialize(this)
+
         // Setup full Edge to Edge bleed drawing
         enableEdgeToEdge()
         

@@ -99,6 +99,27 @@ class HomeChefViewModel(application: Application) : AndroidViewModel(application
     val reviews = repository.reviews.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val alerts = repository.alerts.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // Firebase Authentication, Live DB, and Push Notification flows
+    val firebaseUser = com.example.data.CitchFirebaseService.currentUserFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val firebaseFcmToken = com.example.data.CitchFirebaseService.fcmTokenFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val firebaseSyncStatus = com.example.data.CitchFirebaseService.firestoreSyncStatus.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "Firebase Initializing...")
+
+    fun firebaseAnonymousSignIn(onResult: (Boolean, String?) -> Unit) {
+        com.example.data.CitchFirebaseService.signInAnonymously(onResult)
+    }
+
+    fun firebaseSignInEmail(email: String, pass: String, onResult: (Boolean, String?) -> Unit) {
+        com.example.data.CitchFirebaseService.signInWithEmail(email, pass, onResult)
+    }
+
+    fun firebaseSignUpEmail(email: String, pass: String, onResult: (Boolean, String?) -> Unit) {
+        com.example.data.CitchFirebaseService.signUpWithEmail(email, pass, onResult)
+    }
+
+    fun firebaseSignOut() {
+        com.example.data.CitchFirebaseService.signOut()
+    }
+
     // Active UI states
     private val _currentScreen = MutableStateFlow<Screen>(Screen.Explore)
     val currentScreen: StateFlow<Screen> = _currentScreen.asStateFlow()

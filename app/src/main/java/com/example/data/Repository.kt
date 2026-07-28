@@ -99,6 +99,10 @@ class HomeChefRepository(private val dao: HomeChefDao) {
         )
 
         val orderId = dao.insertOrder(order).toInt()
+        val createdOrder = order.copy(id = orderId)
+
+        // Sync order to Firestore real-time cloud database
+        CitchFirebaseService.syncOrderToFirestore(createdOrder)
 
         // Create initial notification alert
         dao.insertAlert(
@@ -142,6 +146,10 @@ class HomeChefRepository(private val dao: HomeChefDao) {
         if (order != null) {
             val updated = order.copy(status = status, step = step)
             dao.updateOrder(updated)
+            
+            // Sync status update to Firestore
+            CitchFirebaseService.syncOrderToFirestore(updated)
+
             // Save notification alert
             dao.insertAlert(
                 AlertEntity(

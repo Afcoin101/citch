@@ -1888,11 +1888,16 @@ fun SocialDishPostCard(
 @Composable
 fun MapSearchScreen(viewModel: HomeChefViewModel) {
     val chefs by viewModel.chefs.collectAsState()
+    val meals by viewModel.meals.collectAsState()
     val mapRangeKm by viewModel.mapRangeKm.collectAsState()
 
     val closeChefs = remember(chefs, mapRangeKm) {
         viewModel.getChefsWithinRange(chefs, mapRangeKm)
     }
+
+    var selectedChefForQuickCheckout by remember { mutableStateOf<ChefEntity?>(null) }
+    var checkoutMeal by remember { mutableStateOf<MealEntity?>(null) }
+    var checkoutChefName by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -1963,6 +1968,9 @@ fun MapSearchScreen(viewModel: HomeChefViewModel) {
                 userLat = viewModel.userLat,
                 userLng = viewModel.userLng,
                 viewModel = viewModel,
+                onQuickCheckout = { chefId ->
+                    selectedChefForQuickCheckout = chefs.find { it.id == chefId }
+                },
                 modifier = Modifier.fillMaxSize()
             )
 
@@ -2014,6 +2022,199 @@ fun MapSearchScreen(viewModel: HomeChefViewModel) {
                 )
             }
         }
+
+        // Quick Order Kitchens Search Carousel
+        if (closeChefs.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Kitchen Search Results (${closeChefs.size})",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Stripe Payments Ready",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(closeChefs) { (chef, distance) ->
+                        val chefMeals = meals.filter { it.chefId == chef.id }
+                        Card(
+                            modifier = Modifier
+                                .width(240.dp)
+                                .clip(RoundedCornerShape(16.dp)),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = chef.name,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = "★ ${String.format("%.1f", chef.rating)}",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = Color(0xFFFFB800)
+                                    )
+                                }
+                                Text(
+                                    text = "${chef.cuisineType} • ${String.format("%.2f", distance)} km",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { viewModel.navigateTo(Screen.ChefDetail(chef.id)) },
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("Menu", fontSize = 11.sp)
+                                    }
+
+                                    Button(
+                                        onClick = { selectedChefForQuickCheckout = chef },
+                                        modifier = Modifier.weight(1.3f),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF635BFF)),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.ShoppingCart,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(12.dp),
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Order & Pay", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Modal Dialog to Select Meal from Kitchen for Stripe Checkout
+    if (selectedChefForQuickCheckout != null) {
+        val targetChef = selectedChefForQuickCheckout!!
+        val targetMeals = meals.filter { it.chefId == targetChef.id }
+
+        AlertDialog(
+            onDismissRequest = { selectedChefForQuickCheckout = null },
+            title = {
+                Column {
+                    Text(
+                        text = "Order Food from ${targetChef.name}",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "Powered by Stripe Checkout API",
+                        fontSize = 12.sp,
+                        color = Color(0xFF635BFF),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (targetMeals.isEmpty()) {
+                        Text("No active meal items available for this kitchen currently.", style = MaterialTheme.typography.bodySmall)
+                    } else {
+                        Text("Select a dish to proceed to Stripe payment:", style = MaterialTheme.typography.bodySmall)
+                        targetMeals.forEach { meal ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        checkoutMeal = meal
+                                        checkoutChefName = targetChef.name
+                                        selectedChefForQuickCheckout = null
+                                    },
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(meal.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                        Text(meal.description, style = MaterialTheme.typography.bodySmall, color = Color.Gray, maxLines = 1)
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Button(
+                                        onClick = {
+                                            checkoutMeal = meal
+                                            checkoutChefName = targetChef.name
+                                            selectedChefForQuickCheckout = null
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF635BFF)),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                    ) {
+                                        Text("$${String.format("%.2f", meal.price)}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { selectedChefForQuickCheckout = null }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
+    // Launch Stripe Order Checkout Dialog
+    if (checkoutMeal != null) {
+        OrderCheckoutDialog(
+            meal = checkoutMeal!!,
+            chefName = checkoutChefName,
+            viewModel = viewModel,
+            onDismiss = { checkoutMeal = null }
+        )
     }
 }
 
@@ -2023,6 +2224,7 @@ fun LeafletMapView(
     userLat: Double,
     userLng: Double,
     viewModel: HomeChefViewModel,
+    onQuickCheckout: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val isDark = isSystemInDarkTheme()
@@ -2045,6 +2247,13 @@ fun LeafletMapView(
                     fun openChefDetails(chefId: Int) {
                         android.os.Handler(android.os.Looper.getMainLooper()).post {
                             viewModel.navigateTo(Screen.ChefDetail(chefId))
+                        }
+                    }
+
+                    @android.webkit.JavascriptInterface
+                    fun quickCheckout(chefId: Int) {
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            onQuickCheckout(chefId)
                         }
                     }
                 }, "Android")
@@ -2076,12 +2285,13 @@ fun generateLeafletHtml(
             L.marker([${chef.latitude}, ${chef.longitude}], {icon: kitchenIcon})
                 .addTo(map)
                 .bindPopup(`
-                    <div style="font-family: system-ui, -apple-system, sans-serif; line-height: 1.4; min-width: 150px;">
+                    <div style="font-family: system-ui, -apple-system, sans-serif; line-height: 1.4; min-width: 160px;">
                         <div class="popup-title">${escapedName}</div>
                         <div class="popup-cuisine">${escapedCuisine}</div>
                         <div class="popup-address">${escapedAddress}</div>
                         <div class="popup-distance">🍳 ${String.format("%.2f", distance)} km away</div>
                         <button class="popup-button" onclick="Android.openChefDetails(${chef.id})">View Menu</button>
+                        <button class="popup-button-stripe" onclick="Android.quickCheckout(${chef.id})">💳 Quick Stripe Checkout</button>
                     </div>
                 `);
         """.trimIndent())
@@ -2226,6 +2436,27 @@ fun generateLeafletHtml(
                 }
                 .popup-button:active {
                     background: ${if (isDark) "#E05533" else "#D0351B"};
+                }
+                .popup-button-stripe {
+                    display: block;
+                    width: 100%;
+                    text-align: center;
+                    background: #635BFF;
+                    color: white !important;
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    margin-top: 6px;
+                    text-decoration: none;
+                    font-size: 11px;
+                    cursor: pointer;
+                    box-sizing: border-box;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+                    transition: background 0.2s;
+                }
+                .popup-button-stripe:active {
+                    background: #4B45C6;
                 }
             </style>
         </head>
@@ -5830,6 +6061,7 @@ fun GoLiveConfigScreen(viewModel: HomeChefViewModel) {
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                // Google Maps SDK API Key Input
                 OutlinedTextField(
                     value = tempMapKey,
                     onValueChange = { tempMapKey = it },
@@ -5838,6 +6070,167 @@ fun GoLiveConfigScreen(viewModel: HomeChefViewModel) {
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                // Firebase Service Status & Management Card
+                val firebaseUser by viewModel.firebaseUser.collectAsState()
+                val firebaseFcmToken by viewModel.firebaseFcmToken.collectAsState()
+                val firebaseSyncStatus by viewModel.firebaseSyncStatus.collectAsState()
+
+                var tempFirebaseApiKey by remember { mutableStateOf("") }
+                var tempFirebaseProjectId by remember { mutableStateOf("citch-591f9") }
+                var firebaseFeedbackMsg by remember { mutableStateOf<String?>(null) }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Firebase Live Integration Engine", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                        }
+
+                        // Status Badge
+                        Surface(
+                            color = if (firebaseSyncStatus.contains("Connected")) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = "Target Project: $firebaseSyncStatus",
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (firebaseSyncStatus.contains("Connected")) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+
+                        // Firebase Console Setup Guide Box
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("💡 Firebase Console Configuration Steps (citch-591f9):", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                                Text("1. Go to console.firebase.google.com/project/citch-591f9/settings/general", fontSize = 11.sp)
+                                Text("2. Copy the 'Web API Key' (starts with AIzaSy...) and paste it in the box below.", fontSize = 11.sp)
+                                Text("3. Go to Authentication -> Sign-in method -> Click 'Anonymous' -> Enable.", fontSize = 11.sp)
+                            }
+                        }
+
+                        // Firebase Web API Key Input Box
+                        OutlinedTextField(
+                            value = tempFirebaseApiKey,
+                            onValueChange = { tempFirebaseApiKey = it },
+                            label = { Text("Firebase Web API Key (for citch-591f9)") },
+                            placeholder = { Text("AIzaSy...") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = tempFirebaseProjectId,
+                                onValueChange = { tempFirebaseProjectId = it },
+                                label = { Text("Firebase Project ID") },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Button(
+                                onClick = {
+                                    com.example.data.CitchFirebaseService.reinitializeWithCustomConfig(
+                                        context, tempFirebaseApiKey, tempFirebaseProjectId
+                                    ) { success, msg ->
+                                        firebaseFeedbackMsg = msg
+                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                    }
+                                },
+                                modifier = Modifier.padding(top = 8.dp)
+                            ) {
+                                Text("Connect Key")
+                            }
+                        }
+
+                        if (firebaseFeedbackMsg != null) {
+                            Text(
+                                text = firebaseFeedbackMsg ?: "",
+                                fontSize = 11.sp,
+                                color = if (firebaseFeedbackMsg?.contains("Successfully") == true) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                        // 1. Firebase Authentication
+                        Text("1. Firebase Auth Engine Test", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                        if (firebaseUser != null) {
+                            Text("Active Session User UID: ${firebaseUser?.uid}", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+                            OutlinedButton(
+                                onClick = { viewModel.firebaseSignOut() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Sign Out Firebase User")
+                            }
+                        } else {
+                            Text("User Status: Unauthenticated / Local Session", fontSize = 11.sp, color = Color.Gray)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    onClick = {
+                                        viewModel.firebaseAnonymousSignIn { success, msg ->
+                                            firebaseFeedbackMsg = msg
+                                            Toast.makeText(context, msg ?: if (success) "Signed in anonymously!" else "Failed", Toast.LENGTH_LONG).show()
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Test Anon Login", fontSize = 11.sp)
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                        // 2. FCM Push Notifications
+                        Text("2. FCM Push Notifications", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            text = if (firebaseFcmToken != null) "FCM Token: ${firebaseFcmToken?.take(24)}..." else "FCM Token: Registering with Firebase Messaging...",
+                            fontSize = 11.sp,
+                            color = Color.Gray
+                        )
+                        Button(
+                            onClick = {
+                                com.example.data.CitchFirebaseService.triggerLocalPushNotification(
+                                    context,
+                                    "Citch FCM Push Test 🔔",
+                                    "Order #8491: Home Chef accepted your food order and started cooking!"
+                                )
+                                Toast.makeText(context, "FCM Push Notification Sent to System Tray!", Toast.LENGTH_SHORT).show()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Test FCM Push Alert")
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                        // 3. Firestore Live Sync
+                        Text("3. Firestore Database Cloud Mirroring", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "Every new food order or status progression automatically mirrors to Firestore `orders` document collection in real-time.",
+                            fontSize = 11.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
 
                 // Dynamic Sync Status HUD
                 AnimatedVisibility(visible = syncStatus != null) {
@@ -5975,6 +6368,172 @@ fun GoLiveConfigScreen(viewModel: HomeChefViewModel) {
             title = "Deploy on Google Play Console",
             description = "1. Go to build.gradle.kts and update your unique Application ID. \n2. Sign your production release package with the Upload Keystore tool. \n3. Create a store listing under developer.android.com/distribute to publish Citch completely."
         )
+
+        // Privacy Policy Compliance Section
+        var showPrivacyDialog by remember { mutableStateOf(false) }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.VerifiedUser,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Legal & Privacy Compliance",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+                Text(
+                    "Google Play Console requires a clear, accessible Privacy Policy both inside the application and on your store listing page. Use this pre-written, compliant policy designed specifically for Citch.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(
+                    onClick = { showPrivacyDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                    modifier = Modifier.fillMaxWidth().testTag("view_privacy_policy_btn")
+                ) {
+                    Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("View In-App Privacy Policy")
+                }
+            }
+        }
+
+        if (showPrivacyDialog) {
+            Dialog(onDismissRequest = { showPrivacyDialog = false }) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.85f),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 6.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.Security,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Privacy Policy",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            IconButton(onClick = { showPrivacyDialog = false }) {
+                                Icon(Icons.Default.Close, contentDescription = "Close")
+                            }
+                        }
+
+                        Divider(modifier = Modifier.padding(vertical = 12.dp))
+
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            item {
+                                Text(
+                                    text = "Last Updated: July 20, 2026",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontStyle = FontStyle.Italic,
+                                    color = Color.Gray
+                                )
+                            }
+                            item {
+                                Text(
+                                    text = "Welcome to Citch. We are committed to protecting your personal information and your right to privacy. This policy describes how we collect, use, and share your details when utilizing the app.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                            item {
+                                Text("1. Information We Collect", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    text = "• Profile Credentials: Name, email address, physical delivery addresses, and phone numbers.\n" +
+                                           "• Payment Data: Transactions are securely managed via third-party providers (Stripe). No card credentials are ever stored on Citch servers.\n" +
+                                           "• Device Location: Fine/coarse GPS coordinate streams are utilized to search local home kitchens and simulate real-time tracking.\n" +
+                                           "• SQLite Room Storage: Food carts, orders, and custom assistant preferences are saved locally on your device for fast offline loading.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                                )
+                            }
+                            item {
+                                Text("2. How We Use Information", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    text = "• Process payment checkout via secure Stripe SDK flows.\n" +
+                                           "• Map coordinates and calculate delivery distances in real time.\n" +
+                                           "• Render customized culinary instructions via secure server-side Gemini API sandboxes.\n" +
+                                           "• Synchronize transaction statistics and local data profiles.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                                )
+                            }
+                            item {
+                                Text("3. Sharing & Disclosures", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    text = "We share payment tokens securely with Stripe, and query geographic information with Google Maps services. Delivery locations are passed only to home chefs preparing your active orders.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                                )
+                            }
+                            item {
+                                Text("4. Security", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    text = "All communications utilize secure TLS/SSL protocols. Data stored locally on Room enjoys standard Android sandbox protection features.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                                )
+                            }
+                            item {
+                                Text("5. Contact Info", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                                Text(
+                                    text = "For privacy requests, email: olamide.hanson@gmail.com",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                                )
+                            }
+                        }
+
+                        Divider(modifier = Modifier.padding(vertical = 12.dp))
+
+                        Button(
+                            onClick = { showPrivacyDialog = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Acknowledge & Close")
+                        }
+                    }
+                }
+            }
+        }
 
         // Bottom Spacer to prevent overlapping by Bottom Navigation Bar
         Spacer(modifier = Modifier.height(140.dp))

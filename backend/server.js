@@ -15,7 +15,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.DEFAULT_APP_PORT || 3000;
 
 // Enable CORS for all incoming client connections (including Android emulator & physical devices)
 app.use(cors());
@@ -258,6 +258,172 @@ app.get('/', (req, res) => {
         service: "DKitchen Live Backend API Server",
         timestamp: new Date().toISOString()
     });
+});
+
+// Serve root folder assets statically
+app.use('/static-assets', express.static(path.join(__dirname, '..')));
+
+// HTML Assets download page
+app.get('/downloads', (req, res) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Citch App Store Assets</title>
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    background-color: #f5f5f7;
+                    color: #1d1d1f;
+                    padding: 40px 20px;
+                    max-width: 900px;
+                    margin: 0 auto;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 40px;
+                }
+                h1 {
+                    color: #e65100;
+                    margin-bottom: 10px;
+                }
+                .subtitle {
+                    color: #666;
+                    font-size: 1.1rem;
+                }
+                .grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+                    gap: 20px;
+                    margin-top: 30px;
+                }
+                .card {
+                    background: white;
+                    border-radius: 12px;
+                    padding: 20px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    text-align: center;
+                    border: 1px solid #eaeaea;
+                }
+                .card img {
+                    width: 100%;
+                    height: 150px;
+                    border-radius: 8px;
+                    margin-bottom: 15px;
+                    object-fit: contain;
+                    background-color: #f9f9f9;
+                    border: 1px solid #eee;
+                }
+                .card h3 {
+                    margin: 10px 0 5px 0;
+                    font-size: 1.1rem;
+                    color: #2c3e50;
+                }
+                .card p {
+                    font-size: 0.85rem;
+                    color: #666;
+                    margin-bottom: 15px;
+                    height: 50px;
+                    overflow: hidden;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 3;
+                    -webkit-box-orient: vertical;
+                }
+                .btn {
+                    background-color: #e65100;
+                    color: white;
+                    text-decoration: none;
+                    padding: 10px 20px;
+                    border-radius: 6px;
+                    font-weight: bold;
+                    font-size: 0.9rem;
+                    display: inline-block;
+                    transition: background 0.2s;
+                    width: 80%;
+                }
+                .btn:hover {
+                    background-color: #bf360c;
+                }
+                .footer {
+                    margin-top: 50px;
+                    text-align: center;
+                    font-size: 0.9rem;
+                    color: #888;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Citch App - Google Play Store Assets</h1>
+                <p class="subtitle">Click the download buttons below to save each asset directly to your computer or phone!</p>
+            </div>
+            <div class="grid">
+                <div class="card" style="border: 2px solid #2e7d32; background-color: #f1f8e9;">
+                    <div style="font-size: 4rem; height: 150px; display: flex; align-items: center; justify-content: center;">🔑</div>
+                    <h3 style="color: #2e7d32;">New Upload Keystore (.jks)</h3>
+                    <p style="font-weight: bold; color: #2e7d32;">Password: android | Alias: upload</p>
+                    <p>Keep this file safe! You will sign your app bundles with this from now on.</p>
+                    <a class="btn" href="/static-assets/citch-upload-key.jks" download="citch-upload-key.jks" style="background-color: #2e7d32;">Download Keystore File</a>
+                </div>
+                <div class="card" style="border: 2px solid #1565c0; background-color: #e3f2fd;">
+                    <div style="font-size: 4rem; height: 150px; display: flex; align-items: center; justify-content: center;">📜</div>
+                    <h3 style="color: #1565c0;">Upload PEM Certificate</h3>
+                    <p style="font-weight: bold; color: #1565c0;">Upload this file to Google Play Console</p>
+                    <p>Required to reset your lost upload key in Google Play Console.</p>
+                    <a class="btn" href="/static-assets/citch_upload_certificate.pem" download="citch_upload_certificate.pem" style="background-color: #1565c0;">Download PEM Certificate</a>
+                </div>
+                <div class="card" style="border: 2px solid #e65100;">
+                    <div style="font-size: 4rem; height: 150px; display: flex; align-items: center; justify-content: center;">📦</div>
+                    <h3>Android App Bundle (AAB)</h3>
+                    <p style="font-weight: bold; color: #e65100;">File for Google Play Console upload (Version Code: 8, Version Name: 8.0)</p>
+                    <a class="btn" href="/static-assets/citch_app_bundle.aab" download="citch_app_bundle.aab" style="background-color: #e65100;">Download AAB File</a>
+                </div>
+                <div class="card">
+                    <img src="/static-assets/citch_app_icon.jpg" />
+                    <h3>App Icon</h3>
+                    <p>Clean, high-quality 1:1 ratio square icon (512x512 JPG format).</p>
+                    <a class="btn" href="/static-assets/citch_app_icon.jpg" download="citch_app_icon.jpg">Download Icon</a>
+                </div>
+                <div class="card">
+                    <img src="/static-assets/citch_feature_graphic.jpg" />
+                    <h3>Feature Graphic</h3>
+                    <p>Beautiful 1024x500 banner highlighting home cooking.</p>
+                    <a class="btn" href="/static-assets/citch_feature_graphic.jpg" download="citch_feature_graphic.jpg">Download Banner</a>
+                </div>
+                <div class="card">
+                    <img src="/static-assets/citch_phone_screenshot_1.jpg" />
+                    <h3>Phone Screenshot 1</h3>
+                    <p>Vertical 9:16 portrait mobile display highlighting Local Chefs catalog.</p>
+                    <a class="btn" href="/static-assets/citch_phone_screenshot_1.jpg" download="citch_phone_screenshot_1.jpg">Download Screen 1</a>
+                </div>
+                <div class="card">
+                    <img src="/static-assets/citch_phone_screenshot_2.jpg" />
+                    <h3>Phone Screenshot 2</h3>
+                    <p>Vertical 9:16 portrait mobile display highlighting checkout & tracking.</p>
+                    <a class="btn" href="/static-assets/citch_phone_screenshot_2.jpg" download="citch_phone_screenshot_2.jpg">Download Screen 2</a>
+                </div>
+                <div class="card">
+                    <img src="/static-assets/citch_tablet_screenshot.jpg" />
+                    <h3>Tablet Screenshot</h3>
+                    <p>Landscape 4:3 display highlighting adaptive split-pane layouts.</p>
+                    <a class="btn" href="/static-assets/citch_tablet_screenshot.jpg" download="citch_tablet_screenshot.jpg">Download Tablet Screen</a>
+                </div>
+                <div class="card">
+                    <div style="font-size: 4rem; height: 150px; display: flex; align-items: center; justify-content: center;">📜</div>
+                    <h3>Privacy Policy</h3>
+                    <p>Complete HTML Privacy Policy compliance document required by Google Play.</p>
+                    <a class="btn" href="/static-assets/privacy_policy.html" download="privacy_policy.html">Download HTML Policy</a>
+                </div>
+            </div>
+            <div class="footer">
+                <p>&copy; 2026 Citch App. All rights reserved.</p>
+            </div>
+        </body>
+        </html>
+    `);
 });
 
 // GET /chefs - Returns live chefs list
