@@ -58,6 +58,25 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 
 fun getMealImageModel(imageUrl: String, mealName: String = ""): Any {
     return when {
+        imageUrl.contains("ayamase", ignoreCase = true) || mealName.contains("ayamase", ignoreCase = true) ||
+        imageUrl.contains("ofada", ignoreCase = true) || mealName.contains("ofada", ignoreCase = true) -> {
+            com.example.R.drawable.img_ayamase_ofada_1786131015707
+        }
+        imageUrl.contains("efo riro", ignoreCase = true) || mealName.contains("efo riro", ignoreCase = true) -> {
+            com.example.R.drawable.img_efo_riro_1786131027448
+        }
+        imageUrl.contains("buka stew", ignoreCase = true) || mealName.contains("buka stew", ignoreCase = true) ||
+        imageUrl.contains("obe ata", ignoreCase = true) || mealName.contains("obe ata", ignoreCase = true) ||
+        imageUrl.contains("locust beans", ignoreCase = true) || mealName.contains("locust beans", ignoreCase = true) -> {
+            com.example.R.drawable.img_buka_stew_1786131038875
+        }
+        imageUrl.contains("asaro", ignoreCase = true) || mealName.contains("asaro", ignoreCase = true) ||
+        imageUrl.contains("yam porridge", ignoreCase = true) || mealName.contains("yam porridge", ignoreCase = true) -> {
+            com.example.R.drawable.img_asaro_porridge_1786131053022
+        }
+        imageUrl.contains("gizdodo", ignoreCase = true) || mealName.contains("gizdodo", ignoreCase = true) -> {
+            com.example.R.drawable.img_gizdodo_dish_1786131065358
+        }
         imageUrl.contains("jollof", ignoreCase = true) || mealName.contains("jollof", ignoreCase = true) -> {
             com.example.R.drawable.img_jollof_rice_1782163924128
         }
@@ -718,12 +737,24 @@ fun ExploreScreen(viewModel: HomeChefViewModel) {
     }
     
     var showRegisterDialog by remember { mutableStateOf(false) }
+    var showManagePhotosDialog by remember { mutableStateOf(false) }
+    var locationFilter by remember { mutableStateOf("Nearest 📍") }
 
     val categories = listOf("All", "Mains", "Starters", "Desserts", "Drinks")
+    val locationOptions = listOf("Nearest 📍", "< 5 km", "< 10 km", "< 25 km", "Top Rated ⭐")
 
-    val filteredChefs = remember(chefs, meals, searchQuery) {
-        if (searchQuery.isEmpty()) chefs else {
-            chefs.filter { chef ->
+    // Map chefs with their calculated proximity distance from the user's location
+    val chefsWithDistance = remember(chefs, viewModel.userLat, viewModel.userLng) {
+        chefs.map { chef ->
+            chef to viewModel.getDistanceToUser(chef.latitude, chef.longitude)
+        }
+    }
+
+    val filteredAndSortedChefs = remember(chefsWithDistance, meals, searchQuery, locationFilter) {
+        val searched = if (searchQuery.isEmpty()) {
+            chefsWithDistance
+        } else {
+            chefsWithDistance.filter { (chef, _) ->
                 val chefMeals = meals.filter { it.chefId == chef.id }
                 chef.name.contains(searchQuery, ignoreCase = true) ||
                 chef.cuisineType.contains(searchQuery, ignoreCase = true) ||
@@ -734,20 +765,53 @@ fun ExploreScreen(viewModel: HomeChefViewModel) {
                 }
             }
         }
+
+        val distanceFiltered = when (locationFilter) {
+            "< 5 km" -> searched.filter { it.second <= 5.0 }
+            "< 10 km" -> searched.filter { it.second <= 10.0 }
+            "< 25 km" -> searched.filter { it.second <= 25.0 }
+            else -> searched
+        }
+
+        when (locationFilter) {
+            "Top Rated ⭐" -> distanceFiltered.sortedByDescending { it.first.rating }
+            else -> distanceFiltered.sortedBy { it.second } // Default: Nearest first based on location
+        }
     }
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showRegisterDialog = true },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.testTag("register_chef_button")
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Post")
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Host Kitchen", fontWeight = FontWeight.SemiBold)
+                SmallFloatingActionButton(
+                    onClick = { showManagePhotosDialog = true },
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.testTag("manage_kitchen_photos_fab")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Host Profile", modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Manage Photos 📸", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                FloatingActionButton(
+                    onClick = { showRegisterDialog = true },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.testTag("register_chef_button")
+                ) {
+                    Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Post")
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Host Kitchen 🍳", fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
@@ -800,10 +864,46 @@ fun ExploreScreen(viewModel: HomeChefViewModel) {
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Location & Proximity Filter Bar
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.NearMe,
+                            contentDescription = "Location Pin",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Detected Location • Sorted by Nearest",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        items(locationOptions) { option ->
+                            FilterChip(
+                                selected = locationFilter == option,
+                                onClick = { locationFilter = option },
+                                label = { Text(option, fontSize = 10.sp) },
+                                shape = CircleShape
+                            )
+                        }
+                    }
+                }
             }
 
             // Screen Content
-            if (filteredChefs.isEmpty()) {
+            if (filteredAndSortedChefs.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
@@ -813,8 +913,8 @@ fun ExploreScreen(viewModel: HomeChefViewModel) {
                             modifier = Modifier.size(72.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("No kitchens found", style = MaterialTheme.typography.titleMedium, color = Color.Gray)
-                        Text("Try clearing your search query filter.", style = MaterialTheme.typography.bodySmall, color = Color.LightGray)
+                        Text("No kitchens found in selected distance range", style = MaterialTheme.typography.titleMedium, color = Color.Gray)
+                        Text("Try widening your distance filter or search query.", style = MaterialTheme.typography.bodySmall, color = Color.LightGray)
                     }
                 }
             } else {
@@ -894,22 +994,40 @@ fun ExploreScreen(viewModel: HomeChefViewModel) {
                     }
 
                     item {
-                        Text(
-                            text = "Popular Kitchens Nearby",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Cooks & Host Kitchens Nearby 📍",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = "${filteredAndSortedChefs.size} Available",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
 
-                    items(filteredChefs) { chef ->
+                    items(filteredAndSortedChefs) { (chef, distKm) ->
                         val chefMeals = meals.filter { it.chefId == chef.id && (selectedCategory == "All" || it.category == selectedCategory) }
                         
                         // Avoid rendering empty chef slots when category filter does not apply
                         if (chefMeals.isNotEmpty() || selectedCategory == "All") {
-                            ChefCard(chef = chef, meals = chefMeals, searchQuery = searchQuery, onClick = {
-                                viewModel.navigateTo(Screen.ChefDetail(chef.id))
-                            })
+                            ChefCard(
+                                chef = chef,
+                                meals = chefMeals,
+                                distanceKm = distKm,
+                                searchQuery = searchQuery,
+                                onClick = {
+                                    viewModel.navigateTo(Screen.ChefDetail(chef.id))
+                                }
+                            )
                         }
                     }
                 }
@@ -918,6 +1036,10 @@ fun ExploreScreen(viewModel: HomeChefViewModel) {
 
         if (showRegisterDialog) {
             RegisterKitchenDialog(viewModel = viewModel, onDismiss = { showRegisterDialog = false })
+        }
+
+        if (showManagePhotosDialog) {
+            ManageHostKitchenPhotosDialog(viewModel = viewModel, onDismiss = { showManagePhotosDialog = false })
         }
     }
 }
@@ -993,7 +1115,7 @@ fun FeaturedAfricanMealCard(
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "$${String.format("%.2f", meal.price)}",
+                        text = com.example.data.CurrencyHelper.formatPrice(meal.price),
                         color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelMedium
@@ -1037,7 +1159,13 @@ fun FeaturedAfricanMealCard(
 
 // COMPOSABLE: INDIVIDUAL CHEF CARD
 @Composable
-fun ChefCard(chef: ChefEntity, meals: List<MealEntity>, searchQuery: String = "", onClick: () -> Unit) {
+fun ChefCard(
+    chef: ChefEntity,
+    meals: List<MealEntity>,
+    distanceKm: Double? = null,
+    searchQuery: String = "",
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1103,6 +1231,36 @@ fun ChefCard(chef: ChefEntity, meals: List<MealEntity>, searchQuery: String = ""
                                 text = "${chef.rating} • ${chef.cuisineType}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.White.copy(alpha = 0.9f)
+                            )
+                        }
+                    }
+                }
+
+                // Distance Location Badge
+                if (distanceKm != null) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(10.dp),
+                        color = Color.Black.copy(alpha = 0.65f),
+                        shape = CircleShape
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NearMe,
+                                contentDescription = "Proximity",
+                                tint = Color(0xFF81C784),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${String.format("%.1f", distanceKm)} km away",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
@@ -1539,7 +1697,7 @@ fun SocialDishPostCard(
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = "$${String.format("%.2f", meal.price)}",
+                        text = com.example.data.CurrencyHelper.formatPrice(meal.price),
                         color = MaterialTheme.colorScheme.onPrimary,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.ExtraBold
@@ -1738,7 +1896,7 @@ fun SocialDishPostCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Order Now • $${String.format("%.2f", meal.price)}",
+                        text = "Order Now • ${com.example.data.CurrencyHelper.formatPrice(meal.price)}",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -2190,7 +2348,7 @@ fun MapSearchScreen(viewModel: HomeChefViewModel) {
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF635BFF)),
                                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                                     ) {
-                                        Text("$${String.format("%.2f", meal.price)}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Text(com.example.data.CurrencyHelper.formatPrice(meal.price), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -3016,7 +3174,7 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Text("Total Amount Paid", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                Text("$${String.format("%.2f", activeTrackedOrder.totalAmount)}", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                                Text(com.example.data.CurrencyHelper.formatPrice(activeTrackedOrder.totalAmount), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
@@ -3221,7 +3379,7 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                         }
 
                                         Text(
-                                            text = "$${String.format("%.2f", order.totalAmount)}",
+                                            text = com.example.data.CurrencyHelper.formatPrice(order.totalAmount),
                                             fontWeight = FontWeight.ExtraBold,
                                             color = MaterialTheme.colorScheme.primary,
                                             style = MaterialTheme.typography.titleMedium
@@ -3367,7 +3525,7 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                                 )
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Text(
-                                                    text = "$${String.format("%.2f", totalSpent)}",
+                                                    text = com.example.data.CurrencyHelper.formatPrice(totalSpent),
                                                     fontWeight = FontWeight.ExtraBold,
                                                     fontSize = 13.sp
                                                 )
@@ -3429,7 +3587,7 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                                 )
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Text(
-                                                    text = "$${String.format("%.2f", averageOrderValue)}",
+                                                    text = com.example.data.CurrencyHelper.formatPrice(averageOrderValue),
                                                     fontWeight = FontWeight.ExtraBold,
                                                     fontSize = 13.sp
                                                 )
@@ -3660,7 +3818,7 @@ fun PastOrderCard(
                 }
 
                 Text(
-                    text = "$${String.format("%.2f", order.totalAmount)}",
+                    text = com.example.data.CurrencyHelper.formatPrice(order.totalAmount),
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.titleMedium
@@ -4233,7 +4391,7 @@ fun ChefDetailScreen(chefId: Int, viewModel: HomeChefViewModel) {
                                                 modifier = Modifier.weight(1f)
                                             )
                                             Text(
-                                                "$${String.format("%.2f", meal.price)}",
+                                                com.example.data.CurrencyHelper.formatPrice(meal.price),
                                                 fontWeight = FontWeight.ExtraBold,
                                                 color = MaterialTheme.colorScheme.primary,
                                                 style = MaterialTheme.typography.titleMedium
@@ -4953,7 +5111,7 @@ fun VideoPlayer(youtubeVideoUrl: String, modifier: Modifier = Modifier) {
     }
 }
 
-// DIALOG: CREATE NEW IN-APP CHEF / DISH HOSTING POST
+// DIALOG: CREATE NEW IN-APP CHEF / DISH HOSTING POST WITH PICTURE UPLOAD
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
@@ -4965,16 +5123,21 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
     var youtubeUrl by remember { mutableStateOf("") }
     var youtubeName by remember { mutableStateOf("") }
 
+    // Host Profile Picture State
+    var avatarUrl by remember { mutableStateOf("https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150") }
+
+    // Food Picture State
     var dishName by remember { mutableStateOf("") }
     var dishDesc by remember { mutableStateOf("") }
     var dishPrice by remember { mutableStateOf("") }
     var dishCategory by remember { mutableStateOf("Mains") }
+    var dishImageUrl by remember { mutableStateOf("Jollof Rice") }
 
     val context = LocalContext.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Publish Gourmet Kitchen Post", fontWeight = FontWeight.Bold) },
+        title = { Text("Publish Host Kitchen & Dishes 🍳", fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier = Modifier
@@ -4982,8 +5145,61 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
                     .fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Chef Social Profile Info", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                
+                Text("1. Chef Social Profile & Avatar Photo 📸", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+
+                // Profile Avatar Preview & URL Input
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = "Chef Avatar Preview",
+                            placeholder = painterResource(id = android.R.drawable.ic_menu_camera),
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = avatarUrl,
+                            onValueChange = { avatarUrl = it },
+                            label = { Text("Profile Photo URL / Path") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            trailingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null) }
+                        )
+                    }
+                }
+
+                // Preset Chef Avatars
+                Text("Select Sample Avatar Preset:", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf(
+                        "👩‍🍳 Amara" to "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
+                        "👨‍🍳 Tunde" to "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+                        "👩‍🍳 Chinelo" to "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+                        "🧑‍🍳 Kemi" to "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150",
+                        "👨‍🍳 Chef David" to "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"
+                    ).forEach { (label, url) ->
+                        FilterChip(
+                            selected = avatarUrl == url,
+                            onClick = { avatarUrl = url },
+                            label = { Text(label, fontSize = 11.sp) }
+                        )
+                    }
+                }
+
                 OutlinedTextField(
                     value = chefName,
                     onValueChange = { chefName = it },
@@ -4999,7 +5215,7 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
                 OutlinedTextField(
                     value = bio,
                     onValueChange = { bio = it },
-                    label = { Text("Short Bio / Passion Statement") },
+                    label = { Text("Short Bio / Culinary Passion") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -5015,22 +5231,66 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
                     label = { Text("Kitchen Physical Address") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
-                    value = youtubeUrl,
-                    onValueChange = { youtubeUrl = it },
-                    label = { Text("YouTube Channel url (Mocked or Real)") },
-                    placeholder = { Text("https://www.youtube.com/watch?v=FLeSREbZ7Rk") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = youtubeName,
-                    onValueChange = { youtubeName = it },
-                    label = { Text("YouTube Tutorial Channel Name") },
-                    modifier = Modifier.fillMaxWidth()
-                )
 
-                Spacer(modifier = Modifier.height(6.dp))
-                Text("Signature Dish Details", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                Text("2. Signature Dish Details & Food Picture 🥘", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+
+                // Food Image Preview & URL Input
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(2.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = getMealImageModel(dishImageUrl, dishName),
+                            contentDescription = "Dish Photo Preview",
+                            placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = dishImageUrl,
+                            onValueChange = { dishImageUrl = it },
+                            label = { Text("Food Photo URL or Keyword") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            trailingIcon = { Icon(Icons.Default.AddPhotoAlternate, contentDescription = null) }
+                        )
+                    }
+                }
+
+                // Preset Food Photos
+                Text("Select Popular Dish Photo Preset:", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf(
+                        "🍛 Jollof Rice",
+                        "🌶️ Ayamase Ofada",
+                        "🥘 Egusi Pounded Yam",
+                        "🍲 Efo Riro",
+                        "🍲 Buka Stew",
+                        "🥣 Asaro Porridge",
+                        "🍢 Suya & Asun",
+                        "🥞 Puff Puff"
+                    ).forEach { preset ->
+                        FilterChip(
+                            selected = dishImageUrl == preset,
+                            onClick = { dishImageUrl = preset },
+                            label = { Text(preset, fontSize = 11.sp) }
+                        )
+                    }
+                }
 
                 OutlinedTextField(
                     value = dishName,
@@ -5086,15 +5346,251 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
                             mealName = dishName,
                             mealDesc = dishDesc,
                             mealPrice = parsedPrice,
-                            category = dishCategory
+                            category = dishCategory,
+                            avatarUrl = avatarUrl,
+                            imageUrl = dishImageUrl
                         )
-                        Toast.makeText(context, "Kitchen post has been listed near neighborhood!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Kitchen & Dish Photos listed live on Front Page!", Toast.LENGTH_SHORT).show()
                         onDismiss()
                     }
                 },
                 modifier = Modifier.testTag("publish_post_confirm")
             ) {
-                Text("Publish Listing & Alert")
+                Text("Publish Kitchen & Photos")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+// DIALOG: MANAGE EXISTING HOST KITCHEN PROFILE & DISH PHOTOS
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ManageHostKitchenPhotosDialog(
+    viewModel: HomeChefViewModel,
+    onDismiss: () -> Unit
+) {
+    val chefs by viewModel.chefs.collectAsState()
+    val meals by viewModel.meals.collectAsState()
+    val context = LocalContext.current
+
+    var selectedChef by remember { mutableStateOf(chefs.firstOrNull()) }
+    var selectedMeal by remember { mutableStateOf<MealEntity?>(null) }
+
+    LaunchedEffect(selectedChef) {
+        if (selectedChef != null) {
+            val chefMeals = meals.filter { it.chefId == selectedChef?.id }
+            selectedMeal = chefMeals.firstOrNull()
+        }
+    }
+
+    var editAvatarUrl by remember(selectedChef) { mutableStateOf(selectedChef?.avatarUrl ?: "") }
+    var editBio by remember(selectedChef) { mutableStateOf(selectedChef?.bio ?: "") }
+    var editCuisine by remember(selectedChef) { mutableStateOf(selectedChef?.cuisineType ?: "") }
+
+    var editDishName by remember(selectedMeal) { mutableStateOf(selectedMeal?.name ?: "") }
+    var editDishPrice by remember(selectedMeal) { mutableStateOf(selectedMeal?.price?.toString() ?: "12.0") }
+    var editDishImageUrl by remember(selectedMeal) { mutableStateOf(selectedMeal?.imageUrl ?: "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Manage Host Profile & Dish Photos", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text("Select Host Kitchen to Edit:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(chefs) { chef ->
+                        FilterChip(
+                            selected = selectedChef?.id == chef.id,
+                            onClick = { selectedChef = chef },
+                            label = { Text(chef.name, fontSize = 11.sp) }
+                        )
+                    }
+                }
+
+                selectedChef?.let { chef ->
+                    HorizontalDivider()
+
+                    Text("1. Update Profile Picture (Avatar) 📸", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AsyncImage(
+                                model = editAvatarUrl,
+                                contentDescription = "Updated Avatar Preview",
+                                placeholder = painterResource(id = android.R.drawable.ic_menu_camera),
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            OutlinedTextField(
+                                value = editAvatarUrl,
+                                onValueChange = { editAvatarUrl = it },
+                                label = { Text("Chef Avatar URL / Path") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+
+                    // Avatar Presets
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(
+                            "👩‍🍳 Amara" to "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
+                            "👨‍🍳 Tunde" to "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+                            "👩‍🍳 Chinelo" to "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+                            "🧑‍🍳 Kemi" to "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150"
+                        ).forEach { (label, url) ->
+                            FilterChip(
+                                selected = editAvatarUrl == url,
+                                onClick = { editAvatarUrl = url },
+                                label = { Text(label, fontSize = 10.sp) }
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = editCuisine,
+                        onValueChange = { editCuisine = it },
+                        label = { Text("Cuisine Specialty") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = editBio,
+                        onValueChange = { editBio = it },
+                        label = { Text("Chef Bio") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    HorizontalDivider()
+
+                    Text("2. Update Dish Photo & Price 🍲", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+
+                    val chefMeals = meals.filter { it.chefId == chef.id }
+                    if (chefMeals.isNotEmpty()) {
+                        Text("Select Dish to Update:", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(chefMeals) { m ->
+                                FilterChip(
+                                    selected = selectedMeal?.id == m.id,
+                                    onClick = { selectedMeal = m },
+                                    label = { Text(m.name, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .border(2.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(10.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                AsyncImage(
+                                    model = getMealImageModel(editDishImageUrl, editDishName),
+                                    contentDescription = "Dish Preview",
+                                    placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                OutlinedTextField(
+                                    value = editDishImageUrl,
+                                    onValueChange = { editDishImageUrl = it },
+                                    label = { Text("Food Photo URL or Keyword") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+
+                        // Dish presets
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("🍛 Jollof Rice", "🌶️ Ayamase", "🥘 Egusi", "🍲 Efo Riro", "🍲 Buka Stew", "🥣 Asaro", "🍢 Suya").forEach { p ->
+                                FilterChip(
+                                    selected = editDishImageUrl == p,
+                                    onClick = { editDishImageUrl = p },
+                                    label = { Text(p, fontSize = 10.sp) }
+                                )
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = editDishName,
+                            onValueChange = { editDishName = it },
+                            label = { Text("Dish Name") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = editDishPrice,
+                            onValueChange = { editDishPrice = it },
+                            label = { Text("Price ($)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val chef = selectedChef
+                    if (chef != null) {
+                        viewModel.updateChefProfile(
+                            chef = chef,
+                            newAvatarUrl = editAvatarUrl,
+                            newCuisine = editCuisine,
+                            newBio = editBio
+                        )
+                        selectedMeal?.let { m ->
+                            val parsedPrice = editDishPrice.toDoubleOrNull() ?: m.price
+                            viewModel.updateMealDetails(
+                                meal = m,
+                                newName = editDishName,
+                                newPrice = parsedPrice,
+                                newImageUrl = editDishImageUrl
+                            )
+                        }
+                        Toast.makeText(context, "Host profile & dish photo updated on front page!", Toast.LENGTH_SHORT).show()
+                        onDismiss()
+                    }
+                }
+            ) {
+                Text("Save & Update Front Page")
             }
         },
         dismissButton = {
@@ -5494,7 +5990,7 @@ fun OrderCheckoutDialog(
             ) {
                 if (paymentStage == "INPUT") {
                     Text("Order Item: ${meal.name} by $chefName", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    Text("Unit Price: $${String.format("%.2f", meal.price)}", style = MaterialTheme.typography.bodyMedium)
+                    Text("Unit Price: ${com.example.data.CurrencyHelper.formatPrice(meal.price)}", style = MaterialTheme.typography.bodyMedium)
 
                     // Quantity counter selection
                     Row(
@@ -5740,7 +6236,7 @@ fun OrderCheckoutDialog(
                             Column(modifier = Modifier.padding(10.dp)) {
                                 Text("Transaction Target: $stripeTxId", style = MaterialTheme.typography.labelSmall)
                                 Text("Method: Credit card ending in (${cardNum.takeLast(4)})", style = MaterialTheme.typography.labelSmall)
-                                Text("Total processed: $${String.format("%.2f", totalCost)}", style = MaterialTheme.typography.labelSmall)
+                                Text("Total processed: ${com.example.data.CurrencyHelper.formatPrice(totalCost)}", style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -5881,7 +6377,7 @@ fun OrderCheckoutDialog(
                         containerColor = if (isLiveMode) MaterialTheme.colorScheme.primary else Color(0xFF2E7D32)
                     )
                 ) {
-                    Text("Pay $${String.format("%.2f", totalCost)}")
+                    Text("Pay ${com.example.data.CurrencyHelper.formatPrice(totalCost)}")
                 }
             } else if (paymentStage == "SUCCESS") {
                 Button(
@@ -6196,28 +6692,68 @@ fun GoLiveConfigScreen(viewModel: HomeChefViewModel) {
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-                        // 2. FCM Push Notifications
-                        Text("2. FCM Push Notifications", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                        // 2. FCM Push Notifications (Order Status & Promotional Deals)
+                        Text("2. FCM Cloud Messaging Engine", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                         Text(
-                            text = if (firebaseFcmToken != null) "FCM Token: ${firebaseFcmToken?.take(24)}..." else "FCM Token: Registering with Firebase Messaging...",
+                            text = if (firebaseFcmToken != null) "FCM Token: ${firebaseFcmToken?.take(28)}..." else "FCM Token: Registering with Firebase Messaging...",
                             fontSize = 11.sp,
                             color = Color.Gray
                         )
-                        Button(
-                            onClick = {
-                                com.example.data.CitchFirebaseService.triggerLocalPushNotification(
-                                    context,
-                                    "Citch FCM Push Test 🔔",
-                                    "Order #8491: Home Chef accepted your food order and started cooking!"
-                                )
-                                Toast.makeText(context, "FCM Push Notification Sent to System Tray!", Toast.LENGTH_SHORT).show()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Test FCM Push Alert")
+
+                        val subscribedTopics by viewModel.subscribedTopics.collectAsState()
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Subscribed Topics:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            subscribedTopics.forEach { topic ->
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = CircleShape
+                                ) {
+                                    Text(
+                                        text = "• $topic",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Button(
+                                onClick = {
+                                    com.example.data.CitchFirebaseService.sendOrderStatusPushNotification(
+                                        orderId = 9821,
+                                        status = "Out for Delivery",
+                                        title = "Courier Picked Up Order #9821 🚴",
+                                        message = "Your Sisi Jemimah Ayamase Ofada Stew is hot and en route to your location!"
+                                    )
+                                    Toast.makeText(context, "FCM Order Status Push Alert Dispatched!", Toast.LENGTH_SHORT).show()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Order Status Push", fontSize = 11.sp)
+                            }
+
+                            Button(
+                                onClick = {
+                                    viewModel.sendPromotionalFcmPush(
+                                        title = "Weekend Buka Feast Special 🏷️",
+                                        message = "Get 20% off authentic Nigerian Buka Stew & Asaro Yam Porridge today!",
+                                        promoCode = "CITCH20"
+                                    )
+                                    Toast.makeText(context, "FCM Promotional Push Alert Dispatched!", Toast.LENGTH_SHORT).show()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100)),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.LocalOffer, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Promo Deal Push", fontSize = 11.sp)
+                            }
                         }
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

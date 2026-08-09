@@ -101,14 +101,20 @@ class HomeChefRepository(private val dao: HomeChefDao) {
         val orderId = dao.insertOrder(order).toInt()
         val createdOrder = order.copy(id = orderId)
 
-        // Sync order to Firestore real-time cloud database
+        // Sync order to Firestore real-time cloud database & send initial FCM push notification
         CitchFirebaseService.syncOrderToFirestore(createdOrder)
+        CitchFirebaseService.sendOrderStatusPushNotification(
+            orderId = orderId,
+            status = "Pending",
+            title = "Order Cashier Paid Securely ✓",
+            message = "Your order #${orderId} for $quantity x ${meal.name} is confirmed! $chefName is reviewing your request."
+        )
 
         // Create initial notification alert
         dao.insertAlert(
             AlertEntity(
                 title = "Order Cashier Paid Securely ✓",
-                message = "Your payment of $${String.format("%.2f", amount)} was processed securely via $paymentId. Order #${orderId} is now pending chef confirmation."
+                message = "Your payment of ${CurrencyHelper.formatPrice(amount)} was processed securely via $paymentId. Order #${orderId} is now pending chef confirmation."
             )
         )
 
@@ -147,8 +153,14 @@ class HomeChefRepository(private val dao: HomeChefDao) {
             val updated = order.copy(status = status, step = step)
             dao.updateOrder(updated)
             
-            // Sync status update to Firestore
+            // Sync status update to Firestore & send FCM push notification
             CitchFirebaseService.syncOrderToFirestore(updated)
+            CitchFirebaseService.sendOrderStatusPushNotification(
+                orderId = orderId,
+                status = status,
+                title = alertTitle,
+                message = alertMsg
+            )
 
             // Save notification alert
             dao.insertAlert(

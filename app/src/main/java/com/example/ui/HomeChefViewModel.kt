@@ -103,6 +103,7 @@ class HomeChefViewModel(application: Application) : AndroidViewModel(application
     val firebaseUser = com.example.data.CitchFirebaseService.currentUserFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val firebaseFcmToken = com.example.data.CitchFirebaseService.fcmTokenFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val firebaseSyncStatus = com.example.data.CitchFirebaseService.firestoreSyncStatus.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "Firebase Initializing...")
+    val subscribedTopics = com.example.data.CitchFirebaseService.subscribedTopicsFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun firebaseAnonymousSignIn(onResult: (Boolean, String?) -> Unit) {
         com.example.data.CitchFirebaseService.signInAnonymously(onResult)
@@ -119,6 +120,24 @@ class HomeChefViewModel(application: Application) : AndroidViewModel(application
     fun firebaseSignOut() {
         com.example.data.CitchFirebaseService.signOut()
     }
+
+    fun sendPromotionalFcmPush(title: String, message: String, promoCode: String? = null) {
+        com.example.data.CitchFirebaseService.sendPromotionalPushNotification(title, message, promoCode)
+        viewModelScope.launch {
+            repository.addAlert(
+                com.example.data.AlertEntity(
+                    title = title,
+                    message = if (!promoCode.isNull_or_blank_safe()) "$message (Promo: $promoCode)" else message
+                )
+            )
+        }
+    }
+
+    fun subscribeToFcmTopic(topic: String, onResult: (Boolean, String) -> Unit) {
+        com.example.data.CitchFirebaseService.subscribeToTopic(topic, onResult)
+    }
+
+    private fun String?.isNull_or_blank_safe(): Boolean = this == null || this.trim().isEmpty()
 
     // Active UI states
     private val _currentScreen = MutableStateFlow<Screen>(Screen.Explore)
@@ -367,7 +386,12 @@ class HomeChefViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // Chefs can register and post popular dishes to build client loyalty
+    // Distance helper function from user location
+    fun getDistanceToUser(lat: Double, lng: Double): Double {
+        return calculateDistance(userLat, userLng, lat, lng)
+    }
+
+    // Chefs can register and post popular dishes to build client loyalty with custom profile & food photos
     fun createPostListing(
         chefName: String,
         cuisine: String,
@@ -379,12 +403,18 @@ class HomeChefViewModel(application: Application) : AndroidViewModel(application
         mealName: String,
         mealDesc: String,
         mealPrice: Double,
-        category: String
+        category: String,
+        avatarUrl: String = "",
+        imageUrl: String = ""
     ) {
         viewModelScope.launch {
             // Offset coordinates slightly so it is displayed relative to the user on the map
-            val randomLatOffset = (Math.random() - 0.5) * 0.05
-            val randomLngOffset = (Math.random() - 0.5) * 0.05
+            val randomLatOffset = (Math.random() - 0.5) * 0.03
+            val randomLngOffset = (Math.random() - 0.5) * 0.03
+            
+            val finalAvatar = if (avatarUrl.isNotBlank()) avatarUrl else "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150"
+            val finalFoodImg = if (imageUrl.isNotBlank()) imageUrl else "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=300"
+
             val newChefId = repository.addChef(
                 ChefEntity(
                     name = chefName,
@@ -395,7 +425,7 @@ class HomeChefViewModel(application: Application) : AndroidViewModel(application
                     bio = bio,
                     youtubeChannelUrl = if (youtubeUrl.isEmpty()) "https://www.youtube.com/watch?v=FLeSREbZ7Rk" else youtubeUrl,
                     youtubeChannelName = if (youtubeName.isEmpty()) "Chef Channel" else youtubeName,
-                    avatarUrl = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
+                    avatarUrl = finalAvatar,
                     latitude = userLat + randomLatOffset,
                     longitude = userLng + randomLngOffset
                 )
@@ -407,7 +437,7 @@ class HomeChefViewModel(application: Application) : AndroidViewModel(application
                     name = mealName,
                     description = mealDesc,
                     price = mealPrice,
-                    imageUrl = "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=300",
+                    imageUrl = finalFoodImg,
                     category = category,
                     tutorialVideoUrl = if (youtubeUrl.isEmpty()) "https://www.youtube.com/watch?v=FLeSREbZ7Rk" else youtubeUrl
                 )
@@ -418,6 +448,62 @@ class HomeChefViewModel(application: Application) : AndroidViewModel(application
                 AlertEntity(
                     title = "New Kitchen Alert! 🍳",
                     message = "$chefName has joined D-KITCN near you! Try their Signature $mealName today!"
+                )
+            )
+        }
+    }
+
+    // Host cooks can update profile photo & details
+    fun updateChefProfile(
+        chef: ChefEntity,
+        newName: String? = null,
+        newAvatarUrl: String? = null,
+        newCuisine: String? = null,
+        newBio: String? = null,
+        newAddress: String? = null,
+        newPhone: String? = null
+    ) {
+        viewModelScope.launch {
+            val updated = chef.copy(
+                name = newName ?: chef.name,
+                avatarUrl = newAvatarUrl ?: chef.avatarUrl,
+                cuisineType = newCuisine ?: chef.cuisineType,
+                bio = newBio ?: chef.bio,
+                address = newAddress ?: chef.address,
+                phone = newPhone ?: chef.phone
+            )
+            repository.addChef(updated)
+            repository.addAlert(
+                AlertEntity(
+                    title = "Kitchen Profile Updated 📸",
+                    message = "${updated.name} updated their profile picture & details on the front page!"
+                )
+            )
+        }
+    }
+
+    // Host cooks can update dish photo & details
+    fun updateMealDetails(
+        meal: MealEntity,
+        newName: String? = null,
+        newDesc: String? = null,
+        newPrice: Double? = null,
+        newImageUrl: String? = null,
+        newCategory: String? = null
+    ) {
+        viewModelScope.launch {
+            val updated = meal.copy(
+                name = newName ?: meal.name,
+                description = newDesc ?: meal.description,
+                price = newPrice ?: meal.price,
+                imageUrl = newImageUrl ?: meal.imageUrl,
+                category = newCategory ?: meal.category
+            )
+            repository.addMeal(updated)
+            repository.addAlert(
+                AlertEntity(
+                    title = "Dish Photo Updated 🍛",
+                    message = "Photo for '${updated.name}' has been updated on the main screen!"
                 )
             )
         }

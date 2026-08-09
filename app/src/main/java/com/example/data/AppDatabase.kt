@@ -84,7 +84,7 @@ interface HomeChefDao {
         AlertEntity::class,
         ChatMessageEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -99,7 +99,7 @@ abstract class AppDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "dkitchen_database_v3"
+                    "dkitchen_database_v4"
                 )
                 .fallbackToDestructiveMigration(dropAllTables = true)
                 .addCallback(DatabaseCallback(context))
@@ -481,7 +481,7 @@ abstract class AppDatabase : RoomDatabase() {
             // Chef 1 (Italian) New Desserts and Drinks
             dao.insertMeal(
                 MealEntity(
-                    id = 16,
+                    id = 116,
                     chefId = chef1Id,
                     name = "Pistachio Panna Cotta",
                     description = "Creamy, silky-smooth Madagascar vanilla bean panna cotta topped with freshly crushed roasted Sicilian green pistachios and a hint of mint.",
@@ -678,6 +678,203 @@ abstract class AppDatabase : RoomDatabase() {
                     price = 5.50,
                     imageUrl = "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=300",
                     category = "Desserts",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+
+            // Sisi Jemimah Inspired Authentic Nigerian Recipes
+            dao.insertMeal(
+                MealEntity(
+                    id = 40,
+                    chefId = chef5Id,
+                    name = "Nigerian Buka Stew (Obe Ata Dindin)",
+                    description = "Traditional deep-fried pepper stew prepared with bleached palm oil, coarse red bell peppers, scotch bonnets, boiled eggs, cow tripe (shaki), ponmo, and braised beef.",
+                    price = 19.50,
+                    imageUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300",
+                    category = "Mains",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 41,
+                    chefId = chef5Id,
+                    name = "Ayamase (Ofada Stew)",
+                    description = "Spicy green bell pepper stew cooked with bleached palm oil, fermented iru (locust beans), boiled eggs, and assorted meats, served with fragrant Ofada rice.",
+                    price = 21.00,
+                    imageUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300",
+                    category = "Mains",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 42,
+                    chefId = chef5Id,
+                    name = "Efo Riro (Nigerian Spinach Stew)",
+                    description = "Rich Yoruba-style spinach stew seasoned with fermented locust beans (Iru), crayfish, dried fish, smoked turkey, and braised beef.",
+                    price = 19.00,
+                    imageUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300",
+                    category = "Mains",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 43,
+                    chefId = chef5Id,
+                    name = "Nigerian Garden Egg Stew",
+                    description = "Savory crushed garden egg sauce cooked with smoked mackerel, palm oil, and aromatic onions. Served with warm boiled white yam.",
+                    price = 16.50,
+                    imageUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300",
+                    category = "Mains",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 44,
+                    chefId = chef5Id,
+                    name = "Nigerian Buka Peppered Chicken",
+                    description = "Golden crispy fried chicken pieces tossed in a coarse, fiery red bell pepper, scotch bonnet, and caramelized onion reduction.",
+                    price = 15.00,
+                    imageUrl = "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=300",
+                    category = "Starters",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 45,
+                    chefId = chef5Id,
+                    name = "Basmati Nigerian Fried Rice",
+                    description = "Fragrant long-grain basmati rice cooked in seasoned chicken stock and stir-fried with diced beef liver, carrots, sweet peas, and sweetcorn.",
+                    price = 18.00,
+                    imageUrl = "https://images.unsplash.com/photo-1627308595229-7830a5c91f9f?w=300",
+                    category = "Mains",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 46,
+                    chefId = chef5Id,
+                    name = "Native Jollof Rice (Iwuk Edesi)",
+                    description = "Traditional village-style jollof rice cooked with red palm oil, dried fish, crayfish, scent leaves, and locust beans.",
+                    price = 17.50,
+                    imageUrl = "https://images.unsplash.com/photo-1627308595229-7830a5c91f9f?w=300",
+                    category = "Mains",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 47,
+                    chefId = chef5Id,
+                    name = "Gizdodo (Gizzard & Plantain)",
+                    description = "Mouthwatering combo of crispy fried ripe plantain cubes and tender spiced peppered chicken gizzards in a sweet and spicy sauce.",
+                    price = 14.00,
+                    imageUrl = "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=300",
+                    category = "Starters",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 48,
+                    chefId = chef5Id,
+                    name = "Flaky Nigerian Chicken Pie",
+                    description = "Golden, buttery, flaky baked pastry crust stuffed with rich seasoned minced chicken, potatoes, and diced carrots.",
+                    price = 6.50,
+                    imageUrl = "https://images.unsplash.com/photo-1608897013039-887f21d8c804?w=300",
+                    category = "Desserts",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 49,
+                    chefId = chef5Id,
+                    name = "Asaro (Nigerian Yam Porridge)",
+                    description = "Soft, melt-in-your-mouth Pona yam chunks cooked in a rich palm oil broth with crayfish, fresh spinach, and smoked fish.",
+                    price = 17.00,
+                    imageUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300",
+                    category = "Mains",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 50,
+                    chefId = chef5Id,
+                    name = "Turkey & Yam Pepper Soup",
+                    description = "Warming, spicy herbal broth brewed with tender turkey cuts, yam cubes, calabash nutmeg (Ehu), and aromatic West African pepper soup herbs.",
+                    price = 16.00,
+                    imageUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300",
+                    category = "Mains",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 51,
+                    chefId = chef5Id,
+                    name = "Obe Ata Iru (Locust Beans Stew)",
+                    description = "Traditional Yoruba red pepper stew infused with aromatic fermented locust beans (Iru) and tender cuts of fried beef and cow skin (Ponmo).",
+                    price = 18.50,
+                    imageUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300",
+                    category = "Mains",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 52,
+                    chefId = chef5Id,
+                    name = "Nigerian Party Salad",
+                    description = "Classic colorful layered salad with shredded cabbage, carrots, sweet corn, green peas, boiled egg slices, baked beans, and rich salad cream.",
+                    price = 9.00,
+                    imageUrl = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300",
+                    category = "Starters",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 53,
+                    chefId = chef5Id,
+                    name = "Peppered Snails (Sisi Jemimah Style)",
+                    description = "Giant African land snails slow-cooked tender and sautéed in a fiery habanero pepper and caramelized onion glaze.",
+                    price = 16.50,
+                    imageUrl = "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=300",
+                    category = "Starters",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 54,
+                    chefId = chef5Id,
+                    name = "Ofe Nsala (Igbo White Soup)",
+                    description = "Aromatic, spicy yam-thickened soup prepared with fresh catfish, utazi leaves, crayfish, and traditional pepper soup herbs.",
+                    price = 22.00,
+                    imageUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300",
+                    category = "Mains",
                     isAvailable = true,
                     tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
                 )

@@ -37,6 +37,10 @@ object CitchFirebaseService {
     private var auth: FirebaseAuth? = null
     private var db: FirebaseFirestore? = null
     private var messaging: FirebaseMessaging? = null
+    private var appContext: Context? = null
+
+    const val NOTIFICATION_CHANNEL_ORDERS = "citch_orders_channel"
+    const val NOTIFICATION_CHANNEL_PROMOS = "citch_promos_channel"
 
     private val _currentUserFlow = MutableStateFlow<FirebaseUser?>(null)
     val currentUserFlow: StateFlow<FirebaseUser?> = _currentUserFlow.asStateFlow()
@@ -44,19 +48,22 @@ object CitchFirebaseService {
     private val _fcmTokenFlow = MutableStateFlow<String?>(null)
     val fcmTokenFlow: StateFlow<String?> = _fcmTokenFlow.asStateFlow()
 
+    private val _subscribedTopicsFlow = MutableStateFlow<List<String>>(emptyList())
+    val subscribedTopicsFlow: StateFlow<List<String>> = _subscribedTopicsFlow.asStateFlow()
+
     private val _firestoreSyncStatus = MutableStateFlow("Firebase Offline Mode (Room DB active)")
     val firestoreSyncStatus: StateFlow<String> = _firestoreSyncStatus.asStateFlow()
 
     private var ordersListener: ListenerRegistration? = null
 
     fun initialize(context: Context) {
+        appContext = context.applicationContext
         try {
             val prefs = context.getSharedPreferences("citch_firebase_prefs", Context.MODE_PRIVATE)
             val savedApiKey = prefs.getString("custom_api_key", null)
             val savedProjectId = prefs.getString("custom_project_id", "citch-591f9") ?: "citch-591f9"
             val savedAppId = prefs.getString("custom_app_id", "1:625029070704:android:debef6c64c45abdc6f99b5") ?: "1:625029070704:android:debef6c64c45abdc6f99b5"
 
-            // Check if FirebaseApp is already initialized by google-services.json or init default/programmatic fallback
             val app = try {
                 if (savedApiKey != null && savedApiKey.isNotBlank()) {
                     val options = com.google.firebase.FirebaseOptions.Builder()
@@ -116,7 +123,8 @@ object CitchFirebaseService {
                     }
                 }
 
-                createNotificationChannel(context)
+                subscribeToDefaultTopics()
+                createNotificationChannels(context)
             } else {
                 _firestoreSyncStatus.value = "Firebase Uninitialized"
             }
@@ -311,24 +319,74 @@ object CitchFirebaseService {
             }
     }
 
-    // ==================== 3. FCM NOTIFICATION CHANNEL ====================
+    // ==================== 3. FCM NOTIFICATION CHANNELS & TOPICS ====================
 
-    private fun createNotificationChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Citch Order Updates"
-            val descriptionText = "Notifications for kitchen order status & driver location changes"
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(NOTIFICATION_CHANNEL_ID, name, importance).apply {
-                description = descriptionText
+    private fun subscribeToDefaultTopics() {
+        val topics = listOf("order_updates", "promotional_alerts")
+        _subscribedTopicsFlow.value = topics
+        messaging?.let { fcm ->
+            for (topic in topics) {
+                fcm.subscribeToTopic(topic)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            Log.d(TAG, "Subscribed to FCM topic: $topic")
+                        }
+                    }
             }
-
-            val notificationManager: NotificationManager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
         }
     }
 
-    fun triggerLocalPushNotification(context: Context, title: String, message: String) {
+    fun subscribeToTopic(topic: String, onResult: (Boolean, String) -> Unit = { _, _ -> }) {
+        val fcm = messaging
+        if (fcm == null) {
+            onResult(false, "FCM Messaging service uninitialized")
+            return
+        }
+        fcm.subscribeToTopic(topic)
+            .addOnSuccessListener {
+                val current = _subscribedTopicsFlow.value.toMutableList()
+                if (!current.contains(topic)) current.add(topic)
+                _subscribedTopicsFlow.value = current
+                onResult(true, "Subscribed to FCM topic: '$topic'")
+            }
+            .addOnFailureListener { e ->
+                onResult(false, "Failed to subscribe to '$topic': ${e.localizedMessage}")
+            }
+    }
+
+    private fun createNotificationChannels(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            val ordersChannel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ORDERS,
+                "Citch Real-Time Order Status",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Live real-time push updates for kitchen preparation and courier delivery"
+                enableVibration(true)
+            }
+
+            val promosChannel = NotificationChannel(
+                NOTIFICATION_CHANNEL_PROMOS,
+                "Citch Promotional Deals & Discounts",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Special offers, weekend kitchen promos, and new dish alerts"
+            }
+
+            notificationManager.createNotificationChannel(ordersChannel)
+            notificationManager.createNotificationChannel(promosChannel)
+        }
+    }
+
+    fun triggerLocalPushNotification(
+        context: Context,
+        title: String,
+        message: String,
+        channelId: String = NOTIFICATION_CHANNEL_ORDERS
+    ) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -336,17 +394,41 @@ object CitchFirebaseService {
             context, 0, intent, PendingIntent.FLAG_IMMUTABLE
         )
 
-        val builder = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(
+                if (channelId == NOTIFICATION_CHANNEL_ORDERS) NotificationCompat.PRIORITY_HIGH
+                else NotificationCompat.PRIORITY_DEFAULT
+            )
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify((System.currentTimeMillis() % 10000).toInt(), builder.build())
     }
+
+    /**
+     * Dispatch Real-Time FCM Order Status Push Alert to local device and Firestore order stream.
+     */
+    fun sendOrderStatusPushNotification(orderId: Int, status: String, title: String, message: String) {
+        val ctx = appContext ?: return
+        triggerLocalPushNotification(ctx, title, message, NOTIFICATION_CHANNEL_ORDERS)
+        Log.d(TAG, "FCM Order Status Push Sent for Order #$orderId: [$status] $title - $message")
+    }
+
+    /**
+     * Dispatch FCM Promotional Deal / Discount Push Alert.
+     */
+    fun sendPromotionalPushNotification(title: String, message: String, promoCode: String? = null) {
+        val ctx = appContext ?: return
+        val fullMsg = if (!promoCode.isNull_or_blank_safe()) "$message (Use code: $promoCode)" else message
+        triggerLocalPushNotification(ctx, title, fullMsg, NOTIFICATION_CHANNEL_PROMOS)
+        Log.d(TAG, "FCM Promotional Alert Push Sent: $title - $fullMsg")
+    }
+
+    private fun String?.isNull_or_blank_safe(): Boolean = this == null || this.trim().isEmpty()
 }
 
 /**
@@ -362,14 +444,17 @@ class CitchFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
+        val messageType = remoteMessage.data["type"] ?: "order_status"
+        val channelId = if (messageType == "promotional") CitchFirebaseService.NOTIFICATION_CHANNEL_PROMOS else CitchFirebaseService.NOTIFICATION_CHANNEL_ORDERS
+
         val title = remoteMessage.notification?.title
             ?: remoteMessage.data["title"]
-            ?: "Citch Order Alert 🍳"
+            ?: if (messageType == "promotional") "Citch Kitchen Promo 🏷️" else "Citch Order Alert 🍳"
 
         val body = remoteMessage.notification?.body
             ?: remoteMessage.data["body"]
-            ?: "Your order status was updated by the home kitchen."
+            ?: "You have a new update from Citch Home Kitchens."
 
-        CitchFirebaseService.triggerLocalPushNotification(applicationContext, title, body)
+        CitchFirebaseService.triggerLocalPushNotification(applicationContext, title, body, channelId)
     }
 }
