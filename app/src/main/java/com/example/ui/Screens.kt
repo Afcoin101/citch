@@ -14,11 +14,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -38,10 +40,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -57,53 +63,154 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 
 fun getMealImageModel(imageUrl: String, mealName: String = ""): Any {
+    if (imageUrl.startsWith("file:") || imageUrl.startsWith("content:")) {
+        return imageUrl
+    }
+    val combined = "$imageUrl $mealName".lowercase()
     return when {
-        imageUrl.contains("ayamase", ignoreCase = true) || mealName.contains("ayamase", ignoreCase = true) ||
-        imageUrl.contains("ofada", ignoreCase = true) || mealName.contains("ofada", ignoreCase = true) -> {
+        // Ultra-realistic Japanese Dishes
+        combined.contains("ramen") || combined.contains("tonkotsu") || combined.contains("sushi") || combined.contains("japanese") -> {
+            com.example.R.drawable.img_japanese_ramen_1789339722778
+        }
+        // Ultra-realistic Italian Dishes
+        combined.contains("pasta") || combined.contains("lasagna") || combined.contains("fettuccine") || combined.contains("tagliatelle") || combined.contains("bolognese") || combined.contains("tiramisu") || combined.contains("italian") -> {
+            com.example.R.drawable.img_italian_pasta_1789339735435
+        }
+        // Ultra-realistic Indian Dishes
+        combined.contains("butter chicken") || combined.contains("curry") || combined.contains("tikka") || combined.contains("naan") || combined.contains("biryani") || combined.contains("indian") -> {
+            com.example.R.drawable.img_indian_curry_1789339747865
+        }
+        // Ultra-realistic Chinese Dishes
+        combined.contains("dumpling") || combined.contains("dim sum") || combined.contains("potsticker") || combined.contains("bao") || combined.contains("har gow") || combined.contains("siu mai") -> {
+            com.example.R.drawable.img_chinese_dim_sum_1789339771202
+        }
+        combined.contains("kung pao") || combined.contains("gong bao") -> {
+            com.example.R.drawable.img_kung_pao_chicken_1789339134096
+        }
+        combined.contains("mapo") || combined.contains("tofu") || combined.contains("dan dan") || combined.contains("sichuan") || combined.contains("chinese") -> {
+            com.example.R.drawable.img_sichuan_mapo_tofu_1789339156205
+        }
+        // Ultra-realistic Mexican Dishes
+        combined.contains("birria") || combined.contains("taco") || combined.contains("tacos") || combined.contains("mexican") -> {
+            com.example.R.drawable.img_birria_tacos_1789339758620
+        }
+        combined.contains("enchilada") || combined.contains("enchiladas") -> {
+            com.example.R.drawable.img_mexican_enchiladas_1789339144430
+        }
+        // African & Other Dishes
+        combined.contains("pancake") -> {
+            com.example.R.drawable.pancake_stack_1789239350389
+        }
+        combined.contains("ayamase") || combined.contains("ofada") -> {
             com.example.R.drawable.img_ayamase_ofada_1786131015707
         }
-        imageUrl.contains("efo riro", ignoreCase = true) || mealName.contains("efo riro", ignoreCase = true) -> {
+        combined.contains("efo riro") -> {
             com.example.R.drawable.img_efo_riro_1786131027448
         }
-        imageUrl.contains("buka stew", ignoreCase = true) || mealName.contains("buka stew", ignoreCase = true) ||
-        imageUrl.contains("obe ata", ignoreCase = true) || mealName.contains("obe ata", ignoreCase = true) ||
-        imageUrl.contains("locust beans", ignoreCase = true) || mealName.contains("locust beans", ignoreCase = true) -> {
+        combined.contains("buka stew") || combined.contains("obe ata") || combined.contains("locust beans") -> {
             com.example.R.drawable.img_buka_stew_1786131038875
         }
-        imageUrl.contains("asaro", ignoreCase = true) || mealName.contains("asaro", ignoreCase = true) ||
-        imageUrl.contains("yam porridge", ignoreCase = true) || mealName.contains("yam porridge", ignoreCase = true) -> {
+        combined.contains("asaro") || combined.contains("yam porridge") -> {
             com.example.R.drawable.img_asaro_porridge_1786131053022
         }
-        imageUrl.contains("gizdodo", ignoreCase = true) || mealName.contains("gizdodo", ignoreCase = true) -> {
+        combined.contains("gizdodo") || combined.contains("suya") -> {
             com.example.R.drawable.img_gizdodo_dish_1786131065358
         }
-        imageUrl.contains("jollof", ignoreCase = true) || mealName.contains("jollof", ignoreCase = true) -> {
+        combined.contains("jollof") -> {
             com.example.R.drawable.img_jollof_rice_1782163924128
         }
-        imageUrl.contains("egusi", ignoreCase = true) || mealName.contains("egusi", ignoreCase = true) -> {
+        combined.contains("egusi") -> {
             com.example.R.drawable.img_egusi_pounded_yam_1782163995182
         }
-        imageUrl.contains("amala", ignoreCase = true) || mealName.contains("amala", ignoreCase = true) || 
-        imageUrl.contains("abula", ignoreCase = true) || mealName.contains("abula", ignoreCase = true) -> {
+        combined.contains("amala") || combined.contains("abula") -> {
             com.example.R.drawable.img_amala_abula_1782164562868
         }
-        imageUrl.contains("puff puff", ignoreCase = true) || mealName.contains("puff puff", ignoreCase = true) -> {
+        combined.contains("puff puff") -> {
             com.example.R.drawable.img_nigerian_puff_puff_1784429983181
         }
-        imageUrl.contains("moi moi", ignoreCase = true) || mealName.contains("moi moi", ignoreCase = true) ||
-        imageUrl.contains("moin moin", ignoreCase = true) || mealName.contains("moin moin", ignoreCase = true) -> {
+        combined.contains("moi moi") || combined.contains("moin moin") -> {
             com.example.R.drawable.img_moi_moi_1784456040852
         }
-        imageUrl.contains("chin chin", ignoreCase = true) || mealName.contains("chin chin", ignoreCase = true) ||
-        imageUrl.contains("chinchin", ignoreCase = true) || mealName.contains("chinchin", ignoreCase = true) -> {
+        combined.contains("chin chin") || combined.contains("chinchin") -> {
             com.example.R.drawable.img_chin_chin_snack_1784456350762
         }
-        imageUrl.contains("ewa agoyin", ignoreCase = true) || mealName.contains("ewa agoyin", ignoreCase = true) ||
-        imageUrl.contains("agoyin", ignoreCase = true) || mealName.contains("agoyin", ignoreCase = true) -> {
+        combined.contains("ewa agoyin") || combined.contains("agoyin") -> {
             com.example.R.drawable.ewa_agoyin_plate_1784456541832
         }
         else -> imageUrl
     }
+}
+
+fun getMealCountry(meal: MealEntity, chef: ChefEntity?): String {
+    val mealNameLower = meal.name.lowercase()
+    val descLower = meal.description.lowercase()
+    val cuisineLower = chef?.cuisineType?.lowercase() ?: ""
+    val categoryLower = meal.category.lowercase()
+    
+    return when {
+        categoryLower == "china" || categoryLower == "chinese" ||
+        mealNameLower.contains("dumpling") || mealNameLower.contains("dim sum") ||
+        mealNameLower.contains("kung pao") || mealNameLower.contains("mapo") ||
+        mealNameLower.contains("dan dan") || mealNameLower.contains("sichuan") ||
+        descLower.contains("sichuan") || descLower.contains("dim sum") ||
+        cuisineLower.contains("chinese") || cuisineLower.contains("sichuan") || cuisineLower.contains("china") -> "China"
+        
+        categoryLower == "mexico" || categoryLower == "mexican" ||
+        mealNameLower.contains("taco") || mealNameLower.contains("birria") ||
+        mealNameLower.contains("enchilada") || mealNameLower.contains("mole") ||
+        mealNameLower.contains("tres leches") || descLower.contains("oaxaca") ||
+        descLower.contains("tortilla") || descLower.contains("salsa") ||
+        cuisineLower.contains("mexican") || cuisineLower.contains("mexico") || cuisineLower.contains("oaxaca") -> "Mexico"
+        
+        categoryLower == "west africa" || categoryLower == "nigerian" ||
+        mealNameLower.contains("jollof") || mealNameLower.contains("egusi") ||
+        mealNameLower.contains("amala") || mealNameLower.contains("suya") ||
+        mealNameLower.contains("ewa agoyin") || mealNameLower.contains("pancake") ||
+        mealNameLower.contains("ayamase") || mealNameLower.contains("efo riro") ||
+        mealNameLower.contains("buka stew") || mealNameLower.contains("asaro") ||
+        mealNameLower.contains("gizdodo") || mealNameLower.contains("puff puff") ||
+        mealNameLower.contains("moi moi") || mealNameLower.contains("chin chin") ||
+        cuisineLower.contains("nigerian") || cuisineLower.contains("west african") ||
+        cuisineLower.contains("african") -> "West Africa"
+        
+        categoryLower == "ghana" ||
+        mealNameLower.contains("waakye") || mealNameLower.contains("kelewele") ||
+        mealNameLower.contains("sobolo") || cuisineLower.contains("ghanaian") ||
+        cuisineLower.contains("ghanian") -> "Ghana"
+        
+        categoryLower == "japan" || categoryLower == "japanese" ||
+        mealNameLower.contains("ramen") || mealNameLower.contains("sushi") ||
+        mealNameLower.contains("salmon roll") || mealNameLower.contains("tonkotsu") ||
+        cuisineLower.contains("ramen") || cuisineLower.contains("sushi") ||
+        cuisineLower.contains("japanese") -> "Japan"
+        
+        categoryLower == "italy" || categoryLower == "italian" ||
+        mealNameLower.contains("lasagna") || mealNameLower.contains("fettuccine") ||
+        mealNameLower.contains("tiramisu") || mealNameLower.contains("panna cotta") ||
+        cuisineLower.contains("italian") || cuisineLower.contains("pasta") -> "Italy"
+        
+        categoryLower == "india" || categoryLower == "indian" ||
+        mealNameLower.contains("butter chicken") || mealNameLower.contains("naan") ||
+        mealNameLower.contains("biryani") || cuisineLower.contains("indian") ||
+        cuisineLower.contains("curry") -> "India"
+        
+        categoryLower == "middle east" ||
+        mealNameLower.contains("tawook") || mealNameLower.contains("hummus") ||
+        mealNameLower.contains("baklava") || mealNameLower.contains("limonana") ||
+        cuisineLower.contains("middle eastern") || cuisineLower.contains("arab") -> "Middle East"
+        
+        else -> "Other"
+    }
+}
+
+fun getChefAvatarModel(avatarUrl: String, chefName: String = ""): Any {
+    if (avatarUrl.contains("mama_titi", ignoreCase = true) || chefName.contains("Mama Titi", ignoreCase = true)) {
+        return com.example.R.drawable.img_mama_titi_realistic_1789339798903
+    }
+    if (avatarUrl.startsWith("file:") || avatarUrl.startsWith("content:")) {
+        return avatarUrl
+    }
+    return avatarUrl.ifBlank { "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150" }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -139,93 +246,227 @@ fun MainLayout(viewModel: HomeChefViewModel) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.RestaurantMenu,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text(
-                            text = "Citch",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
-                },
-                actions = {
-                    if (currentScreen is Screen.ChefDetail) {
-                        IconButton(onClick = { viewModel.navigateTo(Screen.Explore) }) {
-                            Icon(Icons.Default.Close, contentDescription = "Back to Explore")
-                        }
-                    } else if (currentScreen is Screen.GoLiveConfig) {
-                        IconButton(onClick = { viewModel.navigateTo(Screen.Explore) }) {
-                            Icon(Icons.Default.Close, contentDescription = "Back to Explore")
-                        }
-                    } else if (currentScreen is Screen.AICulinaryHub) {
-                        IconButton(onClick = { viewModel.navigateTo(Screen.Explore) }) {
-                            Icon(Icons.Default.Close, contentDescription = "Back to Explore")
-                        }
-                    } else {
-                        IconButton(onClick = { viewModel.navigateTo(Screen.AICulinaryHub) }) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = "AI Culinary Lab", tint = MaterialTheme.colorScheme.primary)
-                        }
-                        IconButton(onClick = { viewModel.navigateTo(Screen.GoLiveConfig) }) {
-                            Icon(Icons.Default.Settings, contentDescription = "Go Live Settings", tint = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-                )
-            )
-        },
-        bottomBar = {
-            NavigationBar(
-                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
-            ) {
-                NavigationBarItem(
-                    selected = currentScreen is Screen.Explore,
-                    onClick = { viewModel.navigateTo(Screen.Explore) },
-                    icon = { Icon(Icons.Default.Restaurant, contentDescription = "Explore") },
-                    label = { Text("Kitchens") }
-                )
-                NavigationBarItem(
-                    selected = currentScreen is Screen.Showcase,
-                    onClick = { viewModel.navigateTo(Screen.Showcase) },
-                    icon = { Icon(Icons.Default.PhotoLibrary, contentDescription = "Showcase") },
-                    label = { Text("Showcase") }
-                )
-                NavigationBarItem(
-                    selected = currentScreen is Screen.MapSearch,
-                    onClick = { viewModel.navigateTo(Screen.MapSearch) },
-                    icon = { Icon(Icons.Default.Map, contentDescription = "Map Search") },
-                    label = { Text("Map search") }
-                )
-                NavigationBarItem(
-                    selected = currentScreen is Screen.Orders,
-                    onClick = { viewModel.navigateTo(Screen.Orders) },
-                    icon = { Icon(Icons.Default.ShoppingBag, contentDescription = "Orders") },
-                    label = { Text("My Orders") }
-                )
-                NavigationBarItem(
-                    selected = currentScreen is Screen.Notifications,
-                    onClick = { viewModel.navigateTo(Screen.Notifications) },
-                    icon = {
-                        BadgedBox(
-                            badge = {
-                                if (unreadCount > 0) {
-                                    Badge { Text(unreadCount.toString()) }
-                                }
+            val isRootBottomTab = currentScreen is Screen.Explore ||
+                    currentScreen is Screen.MapSearch ||
+                    currentScreen is Screen.Orders ||
+                    currentScreen is Screen.GoLiveConfig
+            if (!isRootBottomTab) {
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF1B1612),
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .testTag("topbar_citch_logo")
+                            ) {
+                                Image(
+                                    painter = painterResource(id = com.example.R.drawable.img_citch_logo_1789242928296),
+                                    contentDescription = "Citch Logo",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
                             }
-                        ) {
-                            Icon(Icons.Default.Notifications, contentDescription = "Alerts")
+                            Spacer(modifier = Modifier.width(10.dp))
+                            val titleText = when (currentScreen) {
+                                is Screen.ChefDetail -> "Kitchen Details"
+                                is Screen.Showcase -> "Community Showcase"
+                                is Screen.Notifications -> "Notifications"
+                                is Screen.AICulinaryHub -> "AI Kitchen Assistant"
+                                is Screen.Camera -> "Snap Kitchen Photo"
+                                is Screen.DishGallery -> "Dish Photos"
+                                else -> "Citch"
+                            }
+                            Text(
+                                text = titleText,
+                                fontFamily = FontFamily.Serif,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color(0xFF1B1612)
+                            )
                         }
                     },
-                    label = { Text("Alerts") }
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.navigateTo(Screen.Explore) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color(0xFF1B1612)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color(0xFFFAF6F0),
+                        titleContentColor = Color(0xFF1B1612)
+                    )
                 )
+            }
+        },
+        bottomBar = {
+            Surface(
+                color = Color(0xFFFAF6F0),
+                border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(62.dp)
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Home
+                    val isHome = currentScreen is Screen.Explore
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { viewModel.navigateTo(Screen.Explore) }
+                            .padding(vertical = 4.dp)
+                            .testTag("nav_home")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Home,
+                            contentDescription = "Home",
+                            tint = if (isHome) Color(0xFFD8582B) else Color(0xFF7A7067),
+                            modifier = Modifier.size(23.dp)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Home",
+                            fontSize = 11.sp,
+                            fontWeight = if (isHome) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isHome) Color(0xFFD8582B) else Color(0xFF7A7067)
+                        )
+                        if (isHome) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 2.dp)
+                                    .width(22.dp)
+                                    .height(2.5.dp)
+                                    .background(Color(0xFFD8582B), RoundedCornerShape(2.dp))
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.height(4.5.dp))
+                        }
+                    }
+
+                    // Explore
+                    val isExplore = currentScreen is Screen.MapSearch
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { viewModel.navigateTo(Screen.MapSearch) }
+                            .padding(vertical = 4.dp)
+                            .testTag("nav_explore")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Explore,
+                            contentDescription = "Explore",
+                            tint = if (isExplore) Color(0xFFD8582B) else Color(0xFF7A7067),
+                            modifier = Modifier.size(23.dp)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Explore",
+                            fontSize = 11.sp,
+                            fontWeight = if (isExplore) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isExplore) Color(0xFFD8582B) else Color(0xFF7A7067)
+                        )
+                        if (isExplore) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 2.dp)
+                                    .width(22.dp)
+                                    .height(2.5.dp)
+                                    .background(Color(0xFFD8582B), RoundedCornerShape(2.dp))
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.height(4.5.dp))
+                        }
+                    }
+
+                    // Orders
+                    val isOrders = currentScreen is Screen.Orders
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { viewModel.navigateTo(Screen.Orders) }
+                            .padding(vertical = 4.dp)
+                            .testTag("nav_orders")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ShoppingBag,
+                            contentDescription = "Orders",
+                            tint = if (isOrders) Color(0xFFD8582B) else Color(0xFF7A7067),
+                            modifier = Modifier.size(23.dp)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Orders",
+                            fontSize = 11.sp,
+                            fontWeight = if (isOrders) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isOrders) Color(0xFFD8582B) else Color(0xFF7A7067)
+                        )
+                        if (isOrders) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 2.dp)
+                                    .width(22.dp)
+                                    .height(2.5.dp)
+                                    .background(Color(0xFFD8582B), RoundedCornerShape(2.dp))
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.height(4.5.dp))
+                        }
+                    }
+
+                    // Profile
+                    val isProfile = currentScreen is Screen.GoLiveConfig
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { viewModel.navigateTo(Screen.GoLiveConfig) }
+                            .padding(vertical = 4.dp)
+                            .testTag("nav_profile")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PersonOutline,
+                            contentDescription = "Profile",
+                            tint = if (isProfile) Color(0xFFD8582B) else Color(0xFF7A7067),
+                            modifier = Modifier.size(23.dp)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Profile",
+                            fontSize = 11.sp,
+                            fontWeight = if (isProfile) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isProfile) Color(0xFFD8582B) else Color(0xFF7A7067)
+                        )
+                        if (isProfile) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 2.dp)
+                                    .width(22.dp)
+                                    .height(2.5.dp)
+                                    .background(Color(0xFFD8582B), RoundedCornerShape(2.dp))
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.height(4.5.dp))
+                        }
+                    }
+                }
             }
         }
     ) { innerPadding ->
@@ -243,6 +484,15 @@ fun MainLayout(viewModel: HomeChefViewModel) {
                     is Screen.Notifications -> NotificationsScreen(viewModel)
                     is Screen.GoLiveConfig -> GoLiveConfigScreen(viewModel)
                     is Screen.AICulinaryHub -> AICulinaryHubScreen(viewModel)
+                    is Screen.Camera -> CameraScreen(
+                        onImageCaptured = { _, _ -> viewModel.navigateTo(Screen.DishGallery) },
+                        onNavigateBack = { viewModel.navigateTo(Screen.Showcase) }
+                    )
+                    is Screen.DishGallery -> DishGalleryScreen(
+                        viewModel = viewModel,
+                        onNavigateToCamera = { viewModel.navigateTo(Screen.Camera) },
+                        onNavigateBack = { viewModel.navigateTo(Screen.Showcase) }
+                    )
                     is Screen.ChefDetail -> ChefDetailScreen(screen.chefId, viewModel)
                 }
             }
@@ -711,6 +961,24 @@ fun ExploreScreen(viewModel: HomeChefViewModel) {
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val reviews by viewModel.reviews.collectAsState()
     val orders by viewModel.orders.collectAsState()
+    val alerts by viewModel.alerts.collectAsState()
+    val unreadAlerts = remember(alerts) { alerts.count { !it.isRead } }
+
+    val selectedLocation by viewModel.currentLocationName.collectAsState()
+    val currentCurrencyCode by viewModel.currentCurrencyCode.collectAsState()
+    val currentCurrencySymbol by viewModel.currentCurrencySymbol.collectAsState()
+    val isDetectingLocation by viewModel.isDetectingLocation.collectAsState()
+    val locationDetectionMessage by viewModel.locationDetectionMessage.collectAsState()
+
+    var showLocationDialog by remember { mutableStateOf(false) }
+    var selectedServiceMode by remember { mutableIntStateOf(0) } // 0: Collect, 1: Meet, 2: At mine
+    var selectedCuisine by remember { mutableStateOf("All") }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ ->
+        viewModel.detectUserLocationAuto()
+    }
 
     val leaderboardChefs = remember(chefs, reviews, orders) {
         chefs.map { chef ->
@@ -738,19 +1006,38 @@ fun ExploreScreen(viewModel: HomeChefViewModel) {
     
     var showRegisterDialog by remember { mutableStateOf(false) }
     var showManagePhotosDialog by remember { mutableStateOf(false) }
-    var locationFilter by remember { mutableStateOf("Nearest 📍") }
+    var checkoutMealForCountry by remember { mutableStateOf<MealEntity?>(null) }
+    var checkoutChefNameForCountry by remember { mutableStateOf("") }
 
-    val categories = listOf("All", "Mains", "Starters", "Desserts", "Drinks")
-    val locationOptions = listOf("Nearest 📍", "< 5 km", "< 10 km", "< 25 km", "Top Rated ⭐")
-
-    // Map chefs with their calculated proximity distance from the user's location
-    val chefsWithDistance = remember(chefs, viewModel.userLat, viewModel.userLng) {
-        chefs.map { chef ->
-            chef to viewModel.getDistanceToUser(chef.latitude, chef.longitude)
+    val countryFilteredMeals = remember(meals, chefs, selectedCuisine) {
+        if (selectedCuisine == "All") {
+            // Curated representation of dishes from various popular countries
+            meals.filter { meal ->
+                val chef = chefs.find { it.id == meal.chefId }
+                val country = getMealCountry(meal, chef)
+                country in listOf("China", "Mexico", "West Africa", "Japan", "Italy", "India")
+            }.take(10)
+        } else {
+            meals.filter { meal ->
+                val chef = chefs.find { it.id == meal.chefId }
+                getMealCountry(meal, chef).equals(selectedCuisine, ignoreCase = true)
+            }
         }
     }
 
-    val filteredAndSortedChefs = remember(chefsWithDistance, meals, searchQuery, locationFilter) {
+    // Map chefs with their calculated proximity distance from user's location
+    val chefsWithDistance = remember(chefs, viewModel.userLat, viewModel.userLng) {
+        chefs.map { chef ->
+            val dist = if (chef.name.contains("Mama Titi", ignoreCase = true)) {
+                0.32
+            } else {
+                viewModel.getDistanceToUser(chef.latitude, chef.longitude)
+            }
+            chef to dist
+        }
+    }
+
+    val filteredAndSortedChefs = remember(chefsWithDistance, meals, searchQuery, selectedCuisine) {
         val searched = if (searchQuery.isEmpty()) {
             chefsWithDistance
         } else {
@@ -766,17 +1053,28 @@ fun ExploreScreen(viewModel: HomeChefViewModel) {
             }
         }
 
-        val distanceFiltered = when (locationFilter) {
-            "< 5 km" -> searched.filter { it.second <= 5.0 }
-            "< 10 km" -> searched.filter { it.second <= 10.0 }
-            "< 25 km" -> searched.filter { it.second <= 25.0 }
-            else -> searched
+        val cuisineFiltered = if (selectedCuisine == "All") {
+            searched
+        } else {
+            searched.filter { (chef, _) ->
+                chef.cuisineType.contains(selectedCuisine, ignoreCase = true) ||
+                (selectedCuisine == "China" && (chef.cuisineType.contains("Chinese", true) || chef.cuisineType.contains("Sichuan", true))) ||
+                (selectedCuisine == "Mexico" && (chef.cuisineType.contains("Mexican", true) || chef.cuisineType.contains("Oaxaca", true))) ||
+                (selectedCuisine == "West Africa" && (chef.cuisineType.contains("African", true) || chef.cuisineType.contains("Nigerian", true) || chef.cuisineType.contains("Ghanaian", true))) ||
+                (selectedCuisine == "Japan" && (chef.cuisineType.contains("Japanese", true) || chef.cuisineType.contains("Ramen", true) || chef.cuisineType.contains("Sushi", true))) ||
+                (selectedCuisine == "Italy" && (chef.cuisineType.contains("Italian", true) || chef.cuisineType.contains("Pasta", true))) ||
+                (selectedCuisine == "India" && (chef.cuisineType.contains("Indian", true) || chef.cuisineType.contains("Curry", true)))
+            }
         }
 
-        when (locationFilter) {
-            "Top Rated ⭐" -> distanceFiltered.sortedByDescending { it.first.rating }
-            else -> distanceFiltered.sortedBy { it.second } // Default: Nearest first based on location
-        }
+        // Put Mama Titi first if present, then Chef of Week, Sponsored Top Placement, Pro Tier, then sorted by distance
+        cuisineFiltered.sortedWith(
+            compareByDescending<Pair<ChefEntity, Double>> { it.first.name.contains("Mama Titi", ignoreCase = true) }
+                .thenByDescending { it.first.isChefOfTheWeek }
+                .thenByDescending { it.first.isSponsored }
+                .thenByDescending { it.first.isProTier }
+                .thenBy { it.second }
+        )
     }
 
     Scaffold(
@@ -787,8 +1085,8 @@ fun ExploreScreen(viewModel: HomeChefViewModel) {
             ) {
                 SmallFloatingActionButton(
                     onClick = { showManagePhotosDialog = true },
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    containerColor = Color.White,
+                    contentColor = Color(0xFF1B1612),
                     modifier = Modifier.testTag("manage_kitchen_photos_fab")
                 ) {
                     Row(
@@ -803,235 +1101,956 @@ fun ExploreScreen(viewModel: HomeChefViewModel) {
 
                 FloatingActionButton(
                     onClick = { showRegisterDialog = true },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    containerColor = Color(0xFFD8582B),
+                    contentColor = Color.White,
                     modifier = Modifier.testTag("register_chef_button")
                 ) {
                     Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Add, contentDescription = "Add Post")
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Host Kitchen 🍳", fontWeight = FontWeight.SemiBold)
+                        Text("Host Kitchen 🍳", fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(Color(0xFFFAF6F0)),
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            // Header Search Box
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.setSearchQuery(it) },
-                    placeholder = { Text("Search dishes, cuisines, chefs near you...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            // 1. Top Location Bar & Notification Bell
+            item {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("search_field"),
-                    singleLine = true,
-                    shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Scrollable Category Badges
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(categories) { category ->
-                        FilterChip(
-                            selected = selectedCategory == category,
-                            onClick = { viewModel.setSelectedCategory(category) },
-                            label = { Text(category) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                            ),
-                            shape = CircleShape
-                        )
+                    // Logo & Location selector
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(18.dp),
+                            color = Color(0xFF1B1612),
+                            border = BorderStroke(1.5.dp, Color(0xFF2C241E)),
+                            shadowElevation = 4.dp,
+                            modifier = Modifier
+                                .size(68.dp)
+                                .testTag("app_brand_logo")
+                        ) {
+                            Image(
+                                painter = painterResource(id = com.example.R.drawable.img_citch_logo_1789242928296),
+                                contentDescription = "Citch Logo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(
+                            modifier = Modifier
+                                .clickable { showLocationDialog = true }
+                                .testTag("location_picker_button")
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "CITCH",
+                                    letterSpacing = 1.8.sp,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 14.sp,
+                                    color = Color(0xFF1B1612)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFFD8582B).copy(alpha = 0.12f)
+                                ) {
+                                    Text(
+                                        text = "FOOD",
+                                        letterSpacing = 1.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 9.sp,
+                                        color = Color(0xFFD8582B),
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = "Location",
+                                    tint = Color(0xFFD8582B),
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = selectedLocation,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF5A5046),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFFFFF0EB),
+                                    border = BorderStroke(0.8.dp, Color(0xFFFFD4C4))
+                                ) {
+                                    Text(
+                                        text = "$currentCurrencyCode $currentCurrencySymbol",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp,
+                                        color = Color(0xFFD8582B),
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.5.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Change Location",
+                                    tint = Color(0xFF7A7067),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // Notification Bell button
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White,
+                        border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clickable { viewModel.navigateTo(Screen.Notifications) }
+                            .testTag("notification_bell_button")
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsNone,
+                                contentDescription = "Alerts",
+                                tint = Color(0xFF1B1612),
+                                modifier = Modifier.size(22.dp)
+                            )
+                            if (unreadAlerts > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(top = 10.dp, end = 10.dp)
+                                        .size(8.dp)
+                                        .background(Color(0xFFD8582B), CircleShape)
+                                )
+                            }
+                        }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Location & Proximity Filter Bar
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+            // 2. Editorial Serif Headline: "Your neighbours are cooking."
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 6.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.NearMe,
-                            contentDescription = "Location Pin",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Detected Location • Sorted by Nearest",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    Text(
+                        text = "Your neighbours",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Serif,
+                        color = Color(0xFF1B1612),
+                        letterSpacing = (-0.5).sp
+                    )
+                    Text(
+                        text = "are cooking.",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontStyle = FontStyle.Italic,
+                        fontFamily = FontFamily.Serif,
+                        color = Color(0xFFD8582B),
+                        letterSpacing = (-0.5).sp
+                    )
+                }
+            }
 
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        items(locationOptions) { option ->
-                            FilterChip(
-                                selected = locationFilter == option,
-                                onClick = { locationFilter = option },
-                                label = { Text(option, fontSize = 10.sp) },
-                                shape = CircleShape
+            // 3. Search Bar
+            item {
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = Color.White,
+                    border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .height(52.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = Color(0xFF8C827A),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = { viewModel.setSearchQuery(it) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("search_field"),
+                            singleLine = true,
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontSize = 15.sp,
+                                color = Color(0xFF1B1612)
+                            ),
+                            decorationBox = { innerTextField ->
+                                if (searchQuery.isEmpty()) {
+                                    Text(
+                                        text = "Jollof, dim sum, tacos...",
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF9E948C)
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        )
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(
+                                onClick = { viewModel.setSearchQuery("") },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Clear",
+                                    tint = Color(0xFF8C827A),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3.5 Citch Club Diner Perks Banner
+            item {
+                val isCitchClubMember by viewModel.isCitchClubMember.collectAsState()
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 6.dp)
+                        .testTag("citch_club_banner"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isCitchClubMember) Color(0xFF1E432A) else Color(0xFFFFF7ED)
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isCitchClubMember) Color(0xFF2E6B43) else Color(0xFFFFEDD5)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = if (isCitchClubMember) Color(0xFF88D49E) else Color(0xFFD8582B),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = if (isCitchClubMember) "Citch Club Member" else "Join Citch Club",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = if (isCitchClubMember) Color.White else Color(0xFF9A3412)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = if (isCitchClubMember) Color(0xFF2E6B43) else Color(0xFFEA580C)
+                                    ) {
+                                        Text(
+                                            text = if (isCitchClubMember) "ACTIVE" else "$9.99/mo",
+                                            color = Color.White,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = if (isCitchClubMember)
+                                        "10% off all orders + FREE Delivery over $15"
+                                    else
+                                        "Get 10% off every order + Free Delivery over $15",
+                                    fontSize = 11.sp,
+                                    color = if (isCitchClubMember) Color(0xFFB7E4C7) else Color(0xFF7A7067)
+                                )
+                            }
+                        }
+                        Button(
+                            onClick = {
+                                viewModel.toggleCitchClubMembership(!isCitchClubMember)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isCitchClubMember) Color(0xFF2E6B43) else Color(0xFFD8582B)
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.height(34.dp)
+                        ) {
+                            Text(
+                                text = if (isCitchClubMember) "Active ✓" else "Join Now",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
                             )
                         }
                     }
                 }
             }
 
-            // Screen Content
-            if (filteredAndSortedChefs.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.SearchOff,
-                            contentDescription = "Not found",
-                            tint = Color.LightGray,
-                            modifier = Modifier.size(72.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("No kitchens found in selected distance range", style = MaterialTheme.typography.titleMedium, color = Color.Gray)
-                        Text("Try widening your distance filter or search query.", style = MaterialTheme.typography.bodySmall, color = Color.LightGray)
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+            // 4. Segmented Control Service Mode
+            item {
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = Color(0xFFEFE9DF),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 6.dp)
                 ) {
-                    // Featured African Specialties horizontal list
-                    val africanMeals = meals.filter { meal ->
-                        meal.chefId == 5 ||
-                        meal.name.contains("Jollof", true) ||
-                        meal.name.contains("Egusi", true) ||
-                        meal.name.contains("Fufu", true) ||
-                        meal.name.contains("Yam", true) ||
-                        meal.name.contains("Amala", true) ||
-                        meal.name.contains("Suya", true) ||
-                        meal.name.contains("Asun", true)
-                    }
-                    val activeAfricanMeals = africanMeals.filter { selectedCategory == "All" || it.category == selectedCategory }
-
-                    if (activeAfricanMeals.isNotEmpty()) {
-                        item {
-                            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val modes = listOf("🏠 Collect", "📍 Meet", "🚶 At mine")
+                        modes.forEachIndexed { index, mode ->
+                            val isSelected = selectedServiceMode == index
+                            Surface(
+                                shape = RoundedCornerShape(24.dp),
+                                color = if (isSelected) Color.White else Color.Transparent,
+                                shadowElevation = if (isSelected) 2.dp else 0.dp,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { selectedServiceMode = index }
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.padding(vertical = 10.dp)
                                 ) {
                                     Text(
-                                        text = "Featured African Specialties 🌶️",
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onBackground
+                                        text = mode,
+                                        fontSize = 13.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) Color(0xFF1B1612) else Color(0xFF756C64)
                                     )
-                                    Text(
-                                        text = "View Chef",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.clickable {
-                                            viewModel.navigateTo(Screen.ChefDetail(5))
-                                        }
-                                    )
-                                }
-                                
-                                Spacer(modifier = Modifier.height(10.dp))
-                                
-                                LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    contentPadding = PaddingValues(end = 4.dp)
-                                ) {
-                                    items(activeAfricanMeals) { meal ->
-                                        val chefForMeal = chefs.find { it.id == meal.chefId }
-                                        val chefName = chefForMeal?.name ?: "Chef Chinelo"
-                                        FeaturedAfricanMealCard(
-                                            meal = meal,
-                                            chefName = chefName,
-                                            onClick = {
-                                                viewModel.navigateTo(Screen.ChefDetail(meal.chefId))
-                                            }
-                                        )
-                                    }
                                 }
                             }
                         }
                     }
+                }
+            }
 
-                    item {
-                        ChefLeaderboardSection(
-                            leaderboardChefs = leaderboardChefs,
-                            onChefClick = { chefId ->
-                                viewModel.navigateTo(Screen.ChefDetail(chefId))
+            // 5. Walking Distance Green Card
+            item {
+                Surface(
+                    shape = RoundedCornerShape(22.dp),
+                    color = Color(0xFF1E432A),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 6.dp)
+                        .clickable { viewModel.navigateTo(Screen.MapSearch) }
+                        .testTag("walking_distance_banner")
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color(0xFF285435),
+                                modifier = Modifier.size(44.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(text = "🏠", fontSize = 20.sp)
+                                }
                             }
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column {
+                                Text(
+                                    text = "2 cooks within walking distance",
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "Closest is ",
+                                        color = Color(0xFFBFE6C1),
+                                        fontSize = 13.sp
+                                    )
+                                    Text(
+                                        text = "4 min",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                    Text(
+                                        text = " from you",
+                                        color = Color(0xFFBFE6C1),
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Explore",
+                            tint = Color(0xFFE5B842),
+                            modifier = Modifier.size(22.dp)
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+            }
+
+            // 6. "What are they cooking?" Section
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "What are they cooking?",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1B1612)
+                        )
+                        Text(
+                            text = "See all",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFD8582B),
+                            modifier = Modifier.clickable { selectedCuisine = "All" }
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    val cuisineItems = listOf(
+                        Triple("China", "CN", com.example.R.drawable.img_chinese_dim_sum_1789339771202),
+                        Triple("Mexico", "MX", com.example.R.drawable.img_birria_tacos_1789339758620),
+                        Triple("West Africa", "NG", com.example.R.drawable.img_jollof_rice_1782163924128),
+                        Triple("Japan", "JP", com.example.R.drawable.img_japanese_ramen_1789339722778),
+                        Triple("Italy", "IT", com.example.R.drawable.img_italian_pasta_1789339735435),
+                        Triple("India", "IN", com.example.R.drawable.img_indian_curry_1789339747865)
+                    )
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        items(cuisineItems) { (name, code, resId) ->
+                            val isSelected = selectedCuisine == name
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.clickable {
+                                    selectedCuisine = if (selectedCuisine == name) "All" else name
+                                }
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(68.dp)
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .border(
+                                            width = if (isSelected) 2.5.dp else 1.dp,
+                                            color = if (isSelected) Color(0xFFD8582B) else Color(0xFFE5DDD3),
+                                            shape = RoundedCornerShape(18.dp)
+                                        )
+                                ) {
+                                    AsyncImage(
+                                        model = resId,
+                                        contentDescription = name,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color.Black.copy(alpha = 0.28f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = code,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 16.sp
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = name,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color(0xFFD8582B) else Color(0xFF1B1612)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 6b. Popular Dishes by Country (Photo-realistic dish cards with Quick Order)
+            if (countryFilteredMeals.isNotEmpty()) {
+                item {
+                    val countryFlag = when (selectedCuisine) {
+                        "China" -> "🇨🇳"
+                        "Mexico" -> "🇲🇽"
+                        "West Africa" -> "🇳🇬"
+                        "Japan" -> "🇯🇵"
+                        "Italy" -> "🇮🇹"
+                        "India" -> "🇮🇳"
+                        else -> "🌍"
+                    }
+                    val sectionTitle = if (selectedCuisine == "All") {
+                        "Popular Dishes Around the World 🌍"
+                    } else {
+                        "Popular $selectedCuisine Dishes $countryFlag"
+                    }
+                    val sectionSubtitle = when (selectedCuisine) {
+                        "China" -> "Authentic hand-crafted dim sum dumplings, wok-fired Kung Pao & Sichuan heat"
+                        "Mexico" -> "Slow-braised street birria tacos, baked enchiladas verdes & Oaxaca family recipes"
+                        "West Africa" -> "Smoky firewood jollof, rich egusi soup, amala & flame-grilled suya"
+                        "Japan" -> "Artisanal 24-hr broth tonkotsu ramen & fresh sushi rolls"
+                        "Italy" -> "Slow-baked rustic lasagna bolognese & hand-rolled truffle pastas"
+                        "India" -> "Velvety slow-cooked butter chicken & pillowy clay oven garlic naan"
+                        else -> "Tap any country above (China, Mexico, etc.) to discover authentic popular dishes"
                     }
 
-                    item {
+                    Spacer(modifier = Modifier.height(18.dp))
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = sectionTitle,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1B1612)
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = sectionSubtitle,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF7A7067),
+                                    lineHeight = 16.sp
+                                )
+                            }
+                            if (selectedCuisine != "All") {
+                                TextButton(
+                                    onClick = { selectedCuisine = "All" }
+                                ) {
+                                    Text(
+                                        text = "Clear Filter",
+                                        color = Color(0xFFD8582B),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            items(countryFilteredMeals) { meal ->
+                                val chefForMeal = chefs.find { it.id == meal.chefId }
+                                val chefName = chefForMeal?.name ?: "Master Chef"
+                                val countryName = getMealCountry(meal, chefForMeal)
+                                PopularCountryMealCard(
+                                    meal = meal,
+                                    chefName = chefName,
+                                    country = countryName,
+                                    location = selectedLocation,
+                                    onCardClick = {
+                                        viewModel.navigateTo(Screen.ChefDetail(meal.chefId))
+                                    },
+                                    onOrderClick = {
+                                        checkoutMealForCountry = meal
+                                        checkoutChefNameForCountry = chefName
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 7. "Open now near Yaba" Header
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                val cityName = selectedLocation.substringBefore(",")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Open now near $cityName",
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1B1612)
+                    )
+                    Text(
+                        text = "${filteredAndSortedChefs.size} cooks",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF7A7067)
+                    )
+                }
+            }
+
+            // 8. Individual Chef Cards (Mama Titi prominently featured)
+            items(filteredAndSortedChefs) { (chef, distKm) ->
+                val chefMeals = meals.filter { it.chefId == chef.id }
+                Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                    ChefCard(
+                        chef = chef,
+                        meals = chefMeals,
+                        distanceKm = distKm,
+                        searchQuery = searchQuery,
+                        onClick = {
+                            viewModel.navigateTo(Screen.ChefDetail(chef.id))
+                        }
+                    )
+                }
+            }
+
+            // 9. Featured African Specialties Section
+            val africanMeals = meals.filter { meal ->
+                meal.chefId == 5 ||
+                meal.chefId == 101 ||
+                meal.name.contains("Jollof", true) ||
+                meal.name.contains("Egusi", true) ||
+                meal.name.contains("Fufu", true) ||
+                meal.name.contains("Yam", true) ||
+                meal.name.contains("Amala", true) ||
+                meal.name.contains("Suya", true)
+            }
+            if (africanMeals.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Cooks & Host Kitchens Nearby 📍",
+                                text = "Featured Specialties 🌶️",
                                 fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onBackground
+                                fontSize = 18.sp,
+                                color = Color(0xFF1B1612)
                             )
                             Text(
-                                text = "${filteredAndSortedChefs.size} Available",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-
-                    items(filteredAndSortedChefs) { (chef, distKm) ->
-                        val chefMeals = meals.filter { it.chefId == chef.id && (selectedCategory == "All" || it.category == selectedCategory) }
-                        
-                        // Avoid rendering empty chef slots when category filter does not apply
-                        if (chefMeals.isNotEmpty() || selectedCategory == "All") {
-                            ChefCard(
-                                chef = chef,
-                                meals = chefMeals,
-                                distanceKm = distKm,
-                                searchQuery = searchQuery,
-                                onClick = {
-                                    viewModel.navigateTo(Screen.ChefDetail(chef.id))
+                                text = "View All",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFD8582B),
+                                modifier = Modifier.clickable {
+                                    viewModel.setSelectedCategory("All")
                                 }
                             )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            items(africanMeals) { meal ->
+                                val chefForMeal = chefs.find { it.id == meal.chefId }
+                                val chefName = chefForMeal?.name ?: "Mama Titi"
+                                FeaturedAfricanMealCard(
+                                    meal = meal,
+                                    chefName = chefName,
+                                    onClick = {
+                                        viewModel.navigateTo(Screen.ChefDetail(meal.chefId))
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
+
+            // 10. Community Leaderboard Section
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    ChefLeaderboardSection(
+                        leaderboardChefs = leaderboardChefs,
+                        onChefClick = { chefId ->
+                            viewModel.navigateTo(Screen.ChefDetail(chefId))
+                        }
+                    )
+                }
+            }
+        }
+
+        // Location Picker Dialog with Auto-Detection & Multi-Currency support
+        if (showLocationDialog) {
+            data class LocationPreset(
+                val name: String,
+                val country: String,
+                val flag: String,
+                val currency: String
+            )
+
+            val locationPresets = listOf(
+                LocationPreset("Camden, London", "United Kingdom", "🇬🇧", "GBP (£)"),
+                LocationPreset("Soho, London", "United Kingdom", "🇬🇧", "GBP (£)"),
+                LocationPreset("Yaba, Lagos", "Nigeria", "🇳🇬", "NGN (₦)"),
+                LocationPreset("Victoria Island, Lagos", "Nigeria", "🇳🇬", "NGN (₦)"),
+                LocationPreset("Lekki Phase 1, Lagos", "Nigeria", "🇳🇬", "NGN (₦)"),
+                LocationPreset("Dublin 2, Ireland", "Ireland", "🇮🇪", "EUR (€)"),
+                LocationPreset("Toronto, Canada", "Canada", "🇨🇦", "CAD (CA$)"),
+                LocationPreset("New York City, USA", "United States", "🇺🇸", "USD ($)"),
+                LocationPreset("Berlin, Germany", "Germany", "🇩🇪", "EUR (€)"),
+                LocationPreset("Paris, France", "France", "🇫🇷", "EUR (€)"),
+                LocationPreset("Shinjuku, Tokyo", "Japan", "🇯🇵", "JPY (¥)"),
+                LocationPreset("Bandra, Mumbai", "India", "🇮🇳", "INR (₹)"),
+                LocationPreset("Osu, Accra", "Ghana", "🇬🇭", "GHS (GH₵)"),
+                LocationPreset("Westlands, Nairobi", "Kenya", "🇰🇪", "KES (KSh)")
+            )
+
+            AlertDialog(
+                onDismissRequest = { showLocationDialog = false },
+                title = {
+                    Column {
+                        Text(
+                            text = "Select Location & Currency",
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1B1612),
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            text = "Prices & cooks automatically adapt to your location",
+                            fontSize = 12.sp,
+                            color = Color(0xFF7A7067)
+                        )
+                    }
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 420.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // 1. AUTO-DETECT BUTTON
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFF1E432A),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    locationPermissionLauncher.launch(
+                                        arrayOf(
+                                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                            android.Manifest.permission.ACCESS_COARSE_LOCATION
+                                        )
+                                    )
+                                }
+                                .testTag("auto_detect_location_button")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (isDetectingLocation) {
+                                    CircularProgressIndicator(
+                                        color = Color.White,
+                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.MyLocation,
+                                        contentDescription = "Auto-detect",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = if (isDetectingLocation) "Detecting your location..." else "Auto-Detect My Location",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                    Text(
+                                        text = "Uses GPS & Geocoder to recognize city & currency",
+                                        color = Color.White.copy(alpha = 0.8f),
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        // Status notification chip if any
+                        locationDetectionMessage?.let { msg ->
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xFFF1F8F4),
+                                border = BorderStroke(1.dp, Color(0xFF2E7D32).copy(alpha = 0.3f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color(0xFF2E7D32),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = msg,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFF1E432A)
+                                    )
+                                }
+                            }
+                        }
+
+                        Text(
+                            text = "Or choose a popular city:",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF7A7067),
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+
+                        // 2. LIST OF POPULAR PRESETS
+                        locationPresets.forEach { preset ->
+                            val isSelected = selectedLocation.startsWith(preset.name.substringBefore(","))
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) Color(0xFFFFEBE5) else Color(0xFFF7F7F8),
+                                border = if (isSelected) BorderStroke(1.5.dp, Color(0xFFD8582B)) else BorderStroke(0.8.dp, Color(0xFFECE6DD)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.setLocation(preset.name)
+                                        showLocationDialog = false
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(preset.flag, fontSize = 18.sp)
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = preset.name,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                                color = if (isSelected) Color(0xFFD8582B) else Color(0xFF1B1612),
+                                                fontSize = 13.sp
+                                            )
+                                            Text(
+                                                text = preset.country,
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF7A7067)
+                                            )
+                                        }
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isSelected) Color(0xFFD8582B) else Color(0xFFECE6DD),
+                                        modifier = Modifier.padding(start = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = preset.currency,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) Color.White else Color(0xFF5A5046),
+                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLocationDialog = false }) {
+                        Text("Close", color = Color(0xFFD8582B), fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
         }
 
         if (showRegisterDialog) {
@@ -1040,6 +2059,187 @@ fun ExploreScreen(viewModel: HomeChefViewModel) {
 
         if (showManagePhotosDialog) {
             ManageHostKitchenPhotosDialog(viewModel = viewModel, onDismiss = { showManagePhotosDialog = false })
+        }
+
+        if (checkoutMealForCountry != null) {
+            OrderCheckoutDialog(
+                meal = checkoutMealForCountry!!,
+                chefName = checkoutChefNameForCountry,
+                viewModel = viewModel,
+                onDismiss = { checkoutMealForCountry = null }
+            )
+        }
+    }
+}
+
+// COMPOSABLE: POPULAR COUNTRY MEAL CARD (Photo-realistic dish showcase with instant order)
+@Composable
+fun PopularCountryMealCard(
+    meal: MealEntity,
+    chefName: String,
+    country: String,
+    location: String = "Lagos",
+    onCardClick: () -> Unit,
+    onOrderClick: () -> Unit
+) {
+    val countryFlag = when (country) {
+        "China" -> "🇨🇳"
+        "Mexico" -> "🇲🇽"
+        "West Africa" -> "🇳🇬"
+        "Japan" -> "🇯🇵"
+        "Italy" -> "🇮🇹"
+        "India" -> "🇮🇳"
+        "Ghana" -> "🇬🇭"
+        "Middle East" -> "🇱🇧"
+        else -> "🍽️"
+    }
+
+    Card(
+        modifier = Modifier
+            .width(280.dp)
+            .clickable(onClick = onCardClick)
+            .testTag("country_meal_card_${meal.id}"),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(170.dp)
+            ) {
+                AsyncImage(
+                    model = getMealImageModel(meal.imageUrl, meal.name),
+                    contentDescription = meal.name,
+                    placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
+                // Top badges: Country Flag + Cuisine tag
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF1E432A).copy(alpha = 0.90f), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "$countryFlag $country",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.92f), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = meal.category,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1B1612)
+                        )
+                    }
+                }
+
+                // Price Tag Pill
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(10.dp)
+                        .background(Color(0xFFD8582B), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        text = com.example.data.CurrencyHelper.formatPriceForLocation(meal.price, location),
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
+
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = meal.name,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1B1612),
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(3.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = Color(0xFF7A7067),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "By $chefName",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF7A7067),
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = meal.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF7A7067),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 16.sp
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Order Action Button
+                Button(
+                    onClick = onOrderClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(38.dp)
+                        .testTag("order_btn_${meal.id}"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFD8582B),
+                        contentColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingBag,
+                        contentDescription = "Order",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Order Now",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }
@@ -1057,14 +2257,15 @@ fun FeaturedAfricanMealCard(
             .clickable(onClick = onClick)
             .testTag("featured_african_meal_card_${meal.id}"),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFECE6DD)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
+                    .height(150.dp)
             ) {
                 AsyncImage(
                     model = getMealImageModel(meal.imageUrl, meal.name),
@@ -1077,13 +2278,13 @@ fun FeaturedAfricanMealCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
+                        .padding(10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .background(Color(0xFFE65100).copy(alpha = 0.9f), CircleShape)
+                            .background(Color(0xFF1E432A), RoundedCornerShape(10.dp))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
@@ -1095,14 +2296,14 @@ fun FeaturedAfricanMealCard(
                     }
                     Box(
                         modifier = Modifier
-                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.9f), CircleShape)
+                            .background(Color.White.copy(alpha = 0.92f), RoundedCornerShape(10.dp))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = meal.category,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            color = Color(0xFF1B1612)
                         )
                     }
                 }
@@ -1110,35 +2311,35 @@ fun FeaturedAfricanMealCard(
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(8.dp)
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .padding(10.dp)
+                        .background(Color(0xFFD8582B), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(
                         text = com.example.data.CurrencyHelper.formatPrice(meal.price),
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = Color.White,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelMedium
                     )
                 }
             }
             
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(14.dp)) {
                 Text(
                     text = meal.name,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = Color(0xFF1B1612),
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 
                 Text(
                     text = "By $chefName",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                    color = Color(0xFF7A7067),
                     fontWeight = FontWeight.SemiBold
                 )
                 
@@ -1147,17 +2348,17 @@ fun FeaturedAfricanMealCard(
                 Text(
                     text = meal.description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    color = Color(0xFF7A7067),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    lineHeight = 14.sp
+                    lineHeight = 16.sp
                 )
             }
         }
     }
 }
 
-// COMPOSABLE: INDIVIDUAL CHEF CARD
+// COMPOSABLE: INDIVIDUAL CHEF CARD (Citch Community Marketplace Style)
 @Composable
 fun ChefCard(
     chef: ChefEntity,
@@ -1166,147 +2367,281 @@ fun ChefCard(
     searchQuery: String = "",
     onClick: () -> Unit
 ) {
+    var isFavorite by remember { mutableStateOf(false) }
+    val firstMeal = meals.firstOrNull()
+    val heroImageModel = remember(meals, chef) {
+        if (firstMeal != null) {
+            getMealImageModel(firstMeal.imageUrl, firstMeal.name)
+        } else {
+            getChefAvatarModel(chef.avatarUrl, chef.name)
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .testTag("chef_card_${chef.id}"),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFECE6DD)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
-            // Cover Header image (simulate beautiful kitchen background)
+            // Main hero dish image
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(130.dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.secondary
-                            )
-                        )
-                    )
+                    .height(200.dp)
             ) {
-                // Profile overlay
-                Row(
+                AsyncImage(
+                    model = heroImageModel,
+                    contentDescription = chef.name,
+                    placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.Bottom
+                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+                    contentScale = ContentScale.Crop
+                )
+
+                // Top-Left: Status & Monetization badge
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = when {
+                        chef.isChefOfTheWeek -> Color(0xFFB45309)
+                        chef.isSponsored -> Color(0xFF1D4ED8)
+                        chef.isProTier -> Color(0xFF15803D)
+                        else -> Color(0xFF1E432A)
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(14.dp)
                 ) {
-                    AsyncImage(
-                        model = chef.avatarUrl,
-                        contentDescription = "Chef Avatar",
-                        placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, Color.White, CircleShape),
-                        contentScale = ContentScale.Crop
+                    Text(
+                        text = when {
+                            chef.isChefOfTheWeek -> "🏆 Chef of the Week"
+                            chef.isSponsored -> "⭐ Top Placement"
+                            chef.isProTier -> "💎 Pro Kitchen Host"
+                            else -> "Neighbour Fave"
+                        },
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = chef.name,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                }
+
+                // Top-Right: Favorite heart button
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White,
+                    shadowElevation = 3.dp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(14.dp)
+                        .size(38.dp)
+                        .clickable { isFavorite = !isFavorite }
+                        .testTag("chef_fav_${chef.id}")
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favorite",
+                            tint = if (isFavorite) Color(0xFFD8582B) else Color(0xFF333333),
+                            modifier = Modifier.size(20.dp)
                         )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = "Rating",
-                                tint = Color(0xFFFFD54F),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${chef.rating} • ${chef.cuisineType}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.9f)
-                            )
-                        }
                     }
                 }
 
-                // Distance Location Badge
-                if (distanceKm != null) {
-                    Surface(
+                // Bottom-Right Overlapping Chef Avatar
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White,
+                    border = BorderStroke(3.dp, Color.White),
+                    shadowElevation = 4.dp,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = (-16).dp, y = 24.dp)
+                        .size(54.dp)
+                ) {
+                    AsyncImage(
+                        model = getChefAvatarModel(chef.avatarUrl, chef.name),
+                        contentDescription = chef.name,
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(10.dp),
-                        color = Color.Black.copy(alpha = 0.65f),
-                        shape = CircleShape
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.NearMe,
-                                contentDescription = "Proximity",
-                                tint = Color(0xFF81C784),
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${String.format("%.1f", distanceKm)} km away",
-                                color = Color.White,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
                 }
             }
 
-            // Display dishes overview briefly
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = chef.bio,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
+            // Card Body Details
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 14.dp)
+            ) {
+                // Chef Name & Distance Pill
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${meals.size} Signature Dishes",
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        text = chef.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 19.sp,
+                        color = Color(0xFF1B1612)
                     )
-                    
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = "Pin",
-                            tint = Color.Red,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
+
+                    val distFormatted = if (distanceKm != null) {
+                        val minEst = (distanceKm * 10).toInt().coerceAtLeast(3)
+                        val metersEst = if (distanceKm < 1.0) "${(distanceKm * 1000).toInt()}m" else "${String.format("%.1f", distanceKm)}km"
+                        "📍 $minEst min • $metersEst"
+                    } else {
+                        "📍 4 min • 320m"
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFE2F4E6)
+                    ) {
                         Text(
-                            text = chef.address.substringBefore(" -"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.DarkGray
+                            text = distFormatted,
+                            color = Color(0xFF1E432A),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
 
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Bio / Quote
+                Text(
+                    text = chef.bio.ifBlank { "Cooking home-style flavours for the neighborhood — freshly made to order." },
+                    color = Color(0xFF7A7067),
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Rating & Starting Price
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        repeat(5) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFE5B842),
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${chef.rating} (${chef.followersCount.takeIf { it > 0 } ?: 312})",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            color = Color(0xFF1B1612)
+                        )
+                    }
+
+                    val minMealPrice = meals.minOfOrNull { it.price } ?: 0.8
+                    val formattedMinPrice = com.example.data.CurrencyHelper.formatPriceForLocation(minMealPrice, chef.address)
+                    Text(
+                        text = "from $formattedMinPrice",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = Color(0xFF1B1612)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Social Proof: "👥 47 neighbours ordered this week"
+                val weeklyCount = (chef.followersCount / 6).coerceIn(18, 95)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Groups,
+                        contentDescription = null,
+                        tint = Color(0xFF2E2722),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "$weeklyCount neighbours ordered this week",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF2E2722)
+                    )
+                }
+
+                // Monetization badge pill row
+                if (chef.isSponsored || chef.isProTier || chef.isChefOfTheWeek) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (chef.isChefOfTheWeek) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFFFFBEB),
+                                border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                            ) {
+                                Text(
+                                    "🏆 Chef of Week",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFB45309),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        if (chef.isSponsored) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFEFF6FF),
+                                border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                            ) {
+                                Text(
+                                    "⭐ Top Placement",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1D4ED8),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        if (chef.isProTier) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFF0FDF4),
+                                border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+                            ) {
+                                Text(
+                                    "💎 Pro Kitchen (8% Fee)",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF15803D),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Search matches (if actively searching)
                 val matchedMeals = if (searchQuery.isNotEmpty()) {
                     meals.filter {
                         it.name.contains(searchQuery, ignoreCase = true) ||
@@ -1315,55 +2650,21 @@ fun ChefCard(
                 } else emptyList()
 
                 if (matchedMeals.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = Color(0xFFECE6DD))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "✨ Matches for \"$searchQuery\":",
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.secondary
+                        fontSize = 12.sp,
+                        color = Color(0xFFD8582B)
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        matchedMeals.forEach { meal ->
-                            Row(
-                                verticalAlignment = Alignment.Top,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = "• ",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Column {
-                                    Text(
-                                        text = meal.name,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    if (meal.description.contains(searchQuery, ignoreCase = true) && 
-                                        !meal.name.contains(searchQuery, ignoreCase = true)) {
-                                        // Find snippet of description around matched query
-                                        val desc = meal.description
-                                        val index = desc.indexOf(searchQuery, ignoreCase = true)
-                                        val start = (index - 20).coerceAtLeast(0)
-                                        val end = (index + searchQuery.length + 30).coerceAtMost(desc.length)
-                                        val prefix = if (start > 0) "..." else ""
-                                        val suffix = if (end < desc.length) "..." else ""
-                                        val snippet = prefix + desc.substring(start, end).trim() + suffix
-                                        Text(
-                                            text = snippet,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = Color.Gray,
-                                            fontStyle = FontStyle.Italic
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                    matchedMeals.forEach { meal ->
+                        Text(
+                            text = "• ${meal.name}",
+                            fontSize = 12.sp,
+                            color = Color(0xFF1B1612)
+                        )
                     }
                 }
             }
@@ -1382,38 +2683,37 @@ fun ShowcaseScreen(viewModel: HomeChefViewModel) {
     
     val isDark = isSystemInDarkTheme()
     
-    val cuisineFilters = listOf("All", "West African", "Indian", "Mexican", "Italian", "Ghanian", "Arab")
+    val cuisineFilters = listOf(
+        "All",
+        "China 🇨🇳",
+        "Mexico 🇲🇽",
+        "West Africa 🇳🇬",
+        "Japan 🇯🇵",
+        "Italy 🇮🇹",
+        "India 🇮🇳",
+        "Ghana 🇬🇭",
+        "Middle East 🇱🇧"
+    )
     var selectedCuisine by remember { mutableStateOf("All") }
     
     val filteredMeals = remember(meals, chefs, selectedCuisine) {
         if (selectedCuisine == "All") {
             meals
         } else {
+            val targetCountry = when {
+                selectedCuisine.contains("China") -> "China"
+                selectedCuisine.contains("Mexico") -> "Mexico"
+                selectedCuisine.contains("West Africa") -> "West Africa"
+                selectedCuisine.contains("Japan") -> "Japan"
+                selectedCuisine.contains("Italy") -> "Italy"
+                selectedCuisine.contains("India") -> "India"
+                selectedCuisine.contains("Ghana") -> "Ghana"
+                selectedCuisine.contains("Middle East") -> "Middle East"
+                else -> selectedCuisine
+            }
             meals.filter { meal ->
                 val chef = chefs.find { it.id == meal.chefId }
-                if (chef == null) false else {
-                    val cuisineTypeLower = chef.cuisineType.lowercase()
-                    when (selectedCuisine) {
-                        "West African" -> {
-                            cuisineTypeLower.contains("nigerian") || 
-                            cuisineTypeLower.contains("ghanaian") || 
-                            cuisineTypeLower.contains("ghanian") || 
-                            cuisineTypeLower.contains("west african")
-                        }
-                        "Ghanian" -> {
-                            cuisineTypeLower.contains("ghanaian") || 
-                            cuisineTypeLower.contains("ghanian")
-                        }
-                        "Indian" -> cuisineTypeLower.contains("indian")
-                        "Mexican" -> cuisineTypeLower.contains("mexican")
-                        "Italian" -> cuisineTypeLower.contains("italian")
-                        "Arab" -> {
-                            cuisineTypeLower.contains("arab") || 
-                            cuisineTypeLower.contains("middle eastern")
-                        }
-                        else -> true
-                    }
-                }
+                getMealCountry(meal, chef).equals(targetCountry, ignoreCase = true)
             }
         }
     }
@@ -1423,69 +2723,101 @@ fun ShowcaseScreen(viewModel: HomeChefViewModel) {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // App top decorative header
+        // App top minimalist clean header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = if (isDark) {
-                            listOf(Color(0xFF231B15), MaterialTheme.colorScheme.background)
-                        } else {
-                            listOf(Color(0xFFFFF4F0), MaterialTheme.colorScheme.background)
-                        }
-                    )
-                )
-                .padding(horizontal = 20.dp, vertical = 24.dp)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 20.dp, vertical = 20.dp)
         ) {
-            Column {
-                Text(
-                    text = "Culinary Showcase ✨",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Discover hot daily creations from certified home kitchens. Like, comment, and order in real-time!",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isDark) Color(0xFFA5928E) else Color(0xFF6B5854)
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Culinary Showcase",
+                        style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Live kitchen creations & daily chef specials",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        IconButton(
+                            onClick = { viewModel.navigateTo(Screen.DishGallery) },
+                            modifier = Modifier.testTag("open_dish_gallery_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.GridOn,
+                                contentDescription = "Dish Gallery",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        IconButton(
+                            onClick = { viewModel.navigateTo(Screen.Camera) },
+                            modifier = Modifier.testTag("open_camera_screen_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Snap Dish",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        // Cuisine Filter Bar (Horizontal Scrollable Chips)
+        // Cuisine Filter Bar (Uber-style horizontal pills)
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.background,
-            shadowElevation = 1.dp
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
         ) {
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items(cuisineFilters) { cuisine ->
-                    FilterChip(
-                        selected = selectedCuisine == cuisine,
-                        onClick = { selectedCuisine = cuisine },
-                        label = { 
-                            Text(
-                                text = cuisine,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (selectedCuisine == cuisine) FontWeight.Bold else FontWeight.Normal
-                            ) 
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        shape = CircleShape
-                    )
+                    val isSelected = selectedCuisine == cuisine
+                    Surface(
+                        shape = CircleShape,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        border = if (!isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)) else null,
+                        modifier = Modifier.clickable { selectedCuisine = cuisine }
+                    ) {
+                        Text(
+                            text = cuisine,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
                 }
             }
         }
@@ -1590,11 +2922,12 @@ fun SocialDishPostCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .testTag("social_dish_card_${meal.id}"),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column {
             // Post Header (Chef Identity)
@@ -1608,9 +2941,9 @@ fun SocialDishPostCard(
                     model = chef.avatarUrl,
                     contentDescription = chef.name,
                     modifier = Modifier
-                        .size(46.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
-                        .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
                     contentScale = ContentScale.Crop
                 )
                 
@@ -1621,30 +2954,27 @@ fun SocialDishPostCard(
                         text = chef.name,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = chef.cuisineType,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
                     )
                 }
                 
-                Button(
-                    onClick = onViewChef,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    modifier = Modifier.height(36.dp)
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.clickable { onViewChef() }
                 ) {
                     Text(
-                        "Visit Kitchen",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold
+                        text = "View Menu",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
             }
@@ -1781,13 +3111,13 @@ fun SocialDishPostCard(
                     text = meal.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = meal.description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isDark) Color(0xFFC7B1AC) else Color(0xFF5D4A46)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 // Dynamic Cooking Tutorial Section
@@ -2042,14 +3372,16 @@ fun SocialDishPostCard(
     }
 }
 
-// MAP SEARCH SCREEN
+// MAP SEARCH SCREEN (Explore Nearby Kitchens)
 @Composable
 fun MapSearchScreen(viewModel: HomeChefViewModel) {
     val chefs by viewModel.chefs.collectAsState()
     val meals by viewModel.meals.collectAsState()
     val mapRangeKm by viewModel.mapRangeKm.collectAsState()
+    val currentLocationName by viewModel.currentLocationName.collectAsState()
+    val currentCurrencySymbol by viewModel.currentCurrencySymbol.collectAsState()
 
-    val closeChefs = remember(chefs, mapRangeKm) {
+    val closeChefs = remember(chefs, mapRangeKm, currentLocationName) {
         viewModel.getChefsWithinRange(chefs, mapRangeKm)
     }
 
@@ -2060,54 +3392,148 @@ fun MapSearchScreen(viewModel: HomeChefViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color(0xFFFAF6F0))
     ) {
-        // Map search control card inside screen top
+        // Editorial Header
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF1B1612),
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("map_citch_logo")
+                    ) {
+                        Image(
+                            painter = painterResource(id = com.example.R.drawable.img_citch_logo_1789242928296),
+                            contentDescription = "Citch Logo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, Color(0xFFECE6DD))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("📍", fontSize = 12.sp)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = currentLocationName,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF1B1612)
+                            )
+                        }
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0xFF1E432A).copy(alpha = 0.1f)
+                ) {
+                    Text(
+                        "${closeChefs.size} active cooks",
+                        color = Color(0xFF1E432A),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "Explore",
+                fontSize = 30.sp,
+                fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1B1612),
+                lineHeight = 34.sp
+            )
+            Text(
+                text = "nearby home kitchens.",
+                fontSize = 30.sp,
+                fontFamily = FontFamily.Serif,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFD8582B),
+                lineHeight = 34.sp
+            )
+        }
+
+        // Map search radius card (Warm Cream & White Card)
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Search Proximity Radius",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "Find kitchens cooking freshly within absolute local perimeter ranges.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "Radius Limit:",
-                        fontWeight = FontWeight.Medium,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "${String.format("%.1f", mapRangeKm)} km",
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    Column {
+                        Text(
+                            text = "Search Radius",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = Color(0xFF1B1612)
+                        )
+                        Text(
+                            text = "Discover home cooks in your neighborhood",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF7A7067)
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFD8582B),
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
+                        Text(
+                            text = "${String.format(Locale.US, "%.1f", mapRangeKm)} km",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
                 }
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Slider(
                     value = mapRangeKm,
                     onValueChange = { viewModel.setMapRange(it) },
                     valueRange = 1f..15f,
                     steps = 14,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFFD8582B),
+                        activeTrackColor = Color(0xFFD8582B),
+                        inactiveTrackColor = Color(0xFFEFE9DF)
+                    )
                 )
             }
         }
@@ -2117,9 +3543,9 @@ fun MapSearchScreen(viewModel: HomeChefViewModel) {
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 2.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .border(2.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .border(1.dp, Color(0xFFECE6DD), RoundedCornerShape(22.dp))
         ) {
             LeafletMapView(
                 closeChefs = closeChefs,
@@ -2138,15 +3564,15 @@ fun MapSearchScreen(viewModel: HomeChefViewModel) {
                     .align(Alignment.BottomStart)
                     .padding(12.dp)
                     .background(
-                        color = if (isSystemInDarkTheme()) Color(0xFF1C1816).copy(alpha = 0.9f) else Color.White.copy(alpha = 0.9f),
-                        shape = RoundedCornerShape(8.dp)
+                        color = Color.White.copy(alpha = 0.95f),
+                        shape = RoundedCornerShape(14.dp)
                     )
                     .border(
                         1.dp,
-                        if (isSystemInDarkTheme()) Color(0xFF2E2724) else Color(0x1F000000),
-                        RoundedCornerShape(8.dp)
+                        Color(0xFFECE6DD),
+                        RoundedCornerShape(14.dp)
                     )
-                    .padding(8.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
@@ -2160,23 +3586,23 @@ fun MapSearchScreen(viewModel: HomeChefViewModel) {
                     "You",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = Color(0xFF1B1612)
                 )
-                
-                Spacer(modifier = Modifier.width(12.dp))
-                
+
+                Spacer(modifier = Modifier.width(14.dp))
+
                 Box(
                     modifier = Modifier
                         .size(10.dp)
                         .clip(CircleShape)
-                        .background(if (isSystemInDarkTheme()) Color(0xFFFF6E4A) else Color(0xFFFF4B2B))
+                        .background(Color(0xFF1E432A))
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     "Kitchens: ${closeChefs.size}",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = Color(0xFF1E432A)
                 )
             }
         }
@@ -2186,7 +3612,7 @@ fun MapSearchScreen(viewModel: HomeChefViewModel) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp)
+                    .padding(vertical = 10.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -2196,15 +3622,17 @@ fun MapSearchScreen(viewModel: HomeChefViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Kitchen Search Results (${closeChefs.size})",
+                        text = "Kitchens Nearby (${closeChefs.size})",
+                        fontFamily = FontFamily.Serif,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1B1612)
                     )
                     Text(
-                        text = "Stripe Payments Ready",
+                        text = "⚡ Instant Pickup / Collect",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
+                        color = Color(0xFF1E432A),
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
@@ -2213,15 +3641,15 @@ fun MapSearchScreen(viewModel: HomeChefViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(closeChefs) { (chef, distance) ->
-                        val chefMeals = meals.filter { it.chefId == chef.id }
                         Card(
                             modifier = Modifier
-                                .width(240.dp)
-                                .clip(RoundedCornerShape(16.dp)),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                .width(260.dp)
+                                .clip(RoundedCornerShape(20.dp)),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
+                            Column(modifier = Modifier.padding(14.dp)) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -2232,39 +3660,65 @@ fun MapSearchScreen(viewModel: HomeChefViewModel) {
                                         fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.bodyMedium,
                                         maxLines = 1,
+                                        color = Color(0xFF1B1612),
                                         modifier = Modifier.weight(1f)
                                     )
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFFFEF3C7)
+                                    ) {
+                                        Text(
+                                            text = "★ ${String.format(Locale.US, "%.1f", chef.rating)}",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp,
+                                            color = Color(0xFFB45309),
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFFFAF6F0)
+                                    ) {
+                                        Text(
+                                            text = "📍 ${String.format(Locale.US, "%.1f", distance)} km",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFF7A7067),
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "★ ${String.format("%.1f", chef.rating)}",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = Color(0xFFFFB800)
+                                        text = chef.cuisineType,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF7A7067)
                                     )
                                 }
-                                Text(
-                                    text = "${chef.cuisineType} • ${String.format("%.2f", distance)} km",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
-                                )
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(10.dp))
 
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     OutlinedButton(
                                         onClick = { viewModel.navigateTo(Screen.ChefDetail(chef.id)) },
                                         modifier = Modifier.weight(1f),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                        border = BorderStroke(1.dp, Color(0xFFECE6DD))
                                     ) {
-                                        Text("Menu", fontSize = 11.sp)
+                                        Text("Menu", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1B1612))
                                     }
 
                                     Button(
                                         onClick = { selectedChefForQuickCheckout = chef },
                                         modifier = Modifier.weight(1.3f),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF635BFF)),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD8582B)),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
                                         Icon(
@@ -2274,7 +3728,7 @@ fun MapSearchScreen(viewModel: HomeChefViewModel) {
                                             tint = Color.White
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Order & Pay", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                        Text("Order", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -2424,6 +3878,14 @@ fun LeafletMapView(
         update = { webView ->
             val html = generateLeafletHtml(closeChefs, userLat, userLng, isDark)
             webView.loadDataWithBaseURL("https://openstreetmap.org", html, "text/html", "UTF-8", null)
+        },
+        onRelease = { webView ->
+            try {
+                webView.stopLoading()
+                webView.destroy()
+            } catch (e: Exception) {
+                // ignore
+            }
         }
     )
 }
@@ -2439,11 +3901,18 @@ fun generateLeafletHtml(
         val escapedName = chef.name.replace("'", "\\'")
         val escapedCuisine = chef.cuisineType.replace("'", "\\'")
         val escapedAddress = chef.address.replace("'", "\\'")
+        val badgeHtml = when {
+            chef.isChefOfTheWeek -> """<div style="background:#FFF3CD;color:#856404;font-size:10px;font-weight:bold;padding:2px 6px;border-radius:4px;margin-bottom:4px;display:inline-block;">🏆 Chef of Week</div>"""
+            chef.isSponsored -> """<div style="background:#EFF6FF;color:#1D4ED8;font-size:10px;font-weight:bold;padding:2px 6px;border-radius:4px;margin-bottom:4px;display:inline-block;">⭐ Top Placement</div>"""
+            chef.isProTier -> """<div style="background:#F0FDF4;color:#15803D;font-size:10px;font-weight:bold;padding:2px 6px;border-radius:4px;margin-bottom:4px;display:inline-block;">💎 Pro Kitchen</div>"""
+            else -> ""
+        }
         markersCode.append("""
             L.marker([${chef.latitude}, ${chef.longitude}], {icon: kitchenIcon})
                 .addTo(map)
                 .bindPopup(`
                     <div style="font-family: system-ui, -apple-system, sans-serif; line-height: 1.4; min-width: 160px;">
+                        ${badgeHtml}
                         <div class="popup-title">${escapedName}</div>
                         <div class="popup-cuisine">${escapedCuisine}</div>
                         <div class="popup-address">${escapedAddress}</div>
@@ -2911,7 +4380,7 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(Color(0xFFFAF6F0))
     ) {
         if (trackedOrderId != null && activeTrackedOrder != null) {
             // RENDER FULL LIVE TRACKING DASHBOARD FOR A SINGLE ORDER
@@ -2921,43 +4390,58 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+                    modifier = Modifier.clickable { viewModel.setTrackedOrder(null) }
                 ) {
-                    IconButton(
-                        onClick = { viewModel.setTrackedOrder(null) },
-                        modifier = Modifier.testTag("back_to_orders_button")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                            .testTag("back_to_orders_button")
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(16.dp), tint = Color(0xFF1B1612))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Back to All Orders",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp,
+                            color = Color(0xFF1B1612)
+                        )
                     }
-                    Text(
-                        text = "Live Tracking Details",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge
-                    )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Beautiful custom drawn dynamic map representing live coordinate transitions
+                Text(
+                    text = "Live Delivery Tracking",
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 26.sp,
+                    color = Color(0xFF1B1612)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Map representing live coordinate transitions
                 MockDeliveryMap(currentStep = activeTrackedOrder.step)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Estimated time arrival card with progress circle
+                // Estimated time arrival card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f)
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f))
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(18.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -2979,13 +4463,13 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                 text = etaText,
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                color = Color(0xFFD8582B)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = subtext,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                color = Color(0xFF7A7067)
                             )
                         }
 
@@ -3003,7 +4487,8 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                     }
                                 },
                                 modifier = Modifier.fillMaxSize(),
-                                color = MaterialTheme.colorScheme.primary,
+                                color = Color(0xFFD8582B),
+                                trackColor = Color(0xFFEFE9DF),
                                 strokeWidth = 5.dp
                             )
                             Icon(
@@ -3014,7 +4499,7 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                     else -> Icons.Default.CheckCircle
                                 },
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = Color(0xFFD8582B),
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -3023,32 +4508,32 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Delivery Courier details & mock actions (Call/Message)
+                // Delivery Courier details
                 if (activeTrackedOrder.step >= 1) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Mock avatar circle
                                 Box(
                                     modifier = Modifier
                                         .size(48.dp)
                                         .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                                        .background(Color(0xFFD8582B).copy(alpha = 0.12f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = "T",
                                         fontWeight = FontWeight.ExtraBold,
                                         style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = Color(0xFFD8582B)
                                     )
                                 }
 
@@ -3056,9 +4541,10 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Tobi (Specialist Rider)",
+                                        text = "Tobi (Specialist Courier)",
                                         fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.bodyLarge
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = Color(0xFF1B1612)
                                     )
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
@@ -3071,7 +4557,7 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                         Text(
                                             text = "4.9 • Electric Cargo Bike",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = Color.Gray
+                                            color = Color(0xFF7A7067)
                                         )
                                     }
                                 }
@@ -3079,25 +4565,25 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     IconButton(
                                         onClick = {
-                                            Toast.makeText(context, "Calling Tobi... 📞 (Standard VoIP simulation)", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "Calling Tobi... 📞", Toast.LENGTH_SHORT).show()
                                         },
                                         colors = IconButtonDefaults.iconButtonColors(
-                                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                                            containerColor = Color(0xFF1E432A).copy(alpha = 0.1f)
                                         ),
                                         modifier = Modifier.size(40.dp)
                                     ) {
-                                        Icon(Icons.Default.Phone, contentDescription = "Call", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                                        Icon(Icons.Default.Phone, contentDescription = "Call", modifier = Modifier.size(18.dp), tint = Color(0xFF1E432A))
                                     }
                                     IconButton(
                                         onClick = {
-                                            Toast.makeText(context, "Opening direct secure courier chat... 💬", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "Opening direct courier chat... 💬", Toast.LENGTH_SHORT).show()
                                         },
                                         colors = IconButtonDefaults.iconButtonColors(
-                                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                                            containerColor = Color(0xFFD8582B).copy(alpha = 0.1f)
                                         ),
                                         modifier = Modifier.size(40.dp)
                                     ) {
-                                        Icon(Icons.Default.Chat, contentDescription = "Chat", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                                        Icon(Icons.Default.Chat, contentDescription = "Chat", modifier = Modifier.size(18.dp), tint = Color(0xFFD8582B))
                                     }
                                 }
                             }
@@ -3109,8 +4595,10 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                 // Active order full timeline stepper
                 Text(
                     text = "Live Tracking Milestones",
+                    fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFF1B1612),
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
@@ -3122,10 +4610,11 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                 var isExpanded by remember { mutableStateOf(false) }
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFECE6DD))
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -3134,53 +4623,54 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.ShoppingBag, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.ShoppingBag, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFFD8582B))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Order Summary Details", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                Text("Order Summary Details", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF1B1612))
                             }
                             Icon(
                                 imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = null
+                                contentDescription = null,
+                                tint = Color(0xFF7A7067)
                             )
                         }
 
                         if (isExpanded) {
                             Spacer(modifier = Modifier.height(12.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            HorizontalDivider(color = Color(0xFFECE6DD))
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Dish ordered", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                                Text("${activeTrackedOrder.quantity}x ${activeTrackedOrder.mealName}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                                Text("Dish ordered", style = MaterialTheme.typography.bodySmall, color = Color(0xFF7A7067))
+                                Text("${activeTrackedOrder.quantity}x ${activeTrackedOrder.mealName}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = Color(0xFF1B1612))
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Chef kitchen", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                                Text(activeTrackedOrder.chefName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                                Text("Chef kitchen", style = MaterialTheme.typography.bodySmall, color = Color(0xFF7A7067))
+                                Text(activeTrackedOrder.chefName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, color = Color(0xFF1B1612))
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Stripe Secure Tx", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                                Text(activeTrackedOrder.paymentId, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                                Text("Payment ID", style = MaterialTheme.typography.bodySmall, color = Color(0xFF7A7067))
+                                Text(activeTrackedOrder.paymentId, style = MaterialTheme.typography.bodySmall, color = Color(0xFFD8582B))
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Destination Address", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                                Text(activeTrackedOrder.buyerAddress, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End, modifier = Modifier.weight(1f).padding(start = 16.dp))
+                                Text("Destination Address", style = MaterialTheme.typography.bodySmall, color = Color(0xFF7A7067))
+                                Text(activeTrackedOrder.buyerAddress, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End, color = Color(0xFF1B1612), modifier = Modifier.weight(1f).padding(start = 16.dp))
                             }
                             Spacer(modifier = Modifier.height(12.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            HorizontalDivider(color = Color(0xFFECE6DD))
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("Total Amount Paid", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                Text(com.example.data.CurrencyHelper.formatPrice(activeTrackedOrder.totalAmount), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                                Text("Total Amount Paid", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF1B1612))
+                                Text(com.example.data.CurrencyHelper.formatPrice(activeTrackedOrder.totalAmount), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium, color = Color(0xFFD8582B))
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Button(
                     onClick = { viewModel.setTrackedOrder(null) },
@@ -3188,49 +4678,163 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                         .fillMaxWidth()
                         .height(48.dp)
                         .testTag("de_focus_tracker_button"),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1B1612))
                 ) {
-                    Text("Return to All Tracker Console", fontWeight = FontWeight.Bold)
+                    Text("Return to All Orders", fontWeight = FontWeight.Bold, color = Color.White)
                 }
 
                 Spacer(modifier = Modifier.height(40.dp))
             }
         } else {
-            // RENDER ACTIVE VS PAST TABS
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.primary,
-                indicator = { tabPositions ->
-                    TabRowDefaults.SecondaryIndicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+            // Editorial Header
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
             ) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = {
-                        val activeCount = orders.count { it.step < 3 }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Active Tracker", fontWeight = FontWeight.Bold)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF1B1612),
+                            modifier = Modifier
+                                .size(32.dp)
+                                .testTag("orders_citch_logo")
+                        ) {
+                            Image(
+                                painter = painterResource(id = com.example.R.drawable.img_citch_logo_1789242928296),
+                                contentDescription = "Citch Logo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFECE6DD))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("📦", fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "Order Tracker",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF1B1612)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "Your orders",
+                    fontSize = 30.sp,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1B1612),
+                    lineHeight = 34.sp
+                )
+                Text(
+                    text = "& hot deliveries.",
+                    fontSize = 30.sp,
+                    fontFamily = FontFamily.Serif,
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFFD8582B),
+                    lineHeight = 34.sp
+                )
+            }
+
+            // Custom Segmented Pill Toggle
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = Color(0xFFEFE9DF),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val activeCount = orders.count { it.step < 3 }
+                    val isTab0 = selectedTab == 0
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        color = if (isTab0) Color.White else Color.Transparent,
+                        border = if (isTab0) BorderStroke(1.dp, Color(0xFFECE6DD)) else null,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { selectedTab = 0 }
+                            .testTag("tab_active_orders")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "🔥 Active Tracker",
+                                fontWeight = if (isTab0) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 13.sp,
+                                color = if (isTab0) Color(0xFF1B1612) else Color(0xFF7A7067)
+                            )
                             if (activeCount > 0) {
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                                    Text(activeCount.toString(), color = MaterialTheme.colorScheme.onPrimary, fontSize = 10.sp, modifier = Modifier.padding(2.dp))
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color(0xFFD8582B)
+                                ) {
+                                    Text(
+                                        text = activeCount.toString(),
+                                        color = Color.White,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
                                 }
                             }
                         }
-                    },
-                    modifier = Modifier.testTag("tab_active_orders")
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = { Text("Past Orders", fontWeight = FontWeight.Bold) },
-                    modifier = Modifier.testTag("tab_past_orders")
-                )
+                    }
+
+                    val isTab1 = selectedTab == 1
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        color = if (isTab1) Color.White else Color.Transparent,
+                        border = if (isTab1) BorderStroke(1.dp, Color(0xFFECE6DD)) else null,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { selectedTab = 1 }
+                            .testTag("tab_past_orders")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "📜 Past Orders",
+                                fontWeight = if (isTab1) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 13.sp,
+                                color = if (isTab1) Color(0xFF1B1612) else Color(0xFF7A7067)
+                            )
+                        }
+                    }
+                }
             }
 
             if (selectedTab == 0) {
@@ -3245,7 +4849,7 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                             modifier = Modifier
                                 .padding(24.dp)
                                 .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
                             Image(
                                 painter = painterResource(id = com.example.R.drawable.img_delivery_courier_1784427764589),
@@ -3253,28 +4857,29 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                 modifier = Modifier
                                     .fillMaxWidth(0.85f)
                                     .height(180.dp)
-                                    .clip(RoundedCornerShape(16.dp)),
+                                    .clip(RoundedCornerShape(22.dp)),
                                 contentScale = ContentScale.Crop
                             )
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
                                 text = "No Active Orders Underway",
                                 style = MaterialTheme.typography.titleLarge,
+                                fontFamily = FontFamily.Serif,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDark) Color.White else Color.Black,
+                                color = Color(0xFF1B1612),
                                 textAlign = TextAlign.Center
                             )
 
                             Text(
-                                text = "Pick a mouth-watering meal, finalize Stripe Sandbox payment, and view direct live-tracking GPS countdown updates in real time!",
+                                text = "Pick a dish made by your neighbors, checkout, and watch your food arrive hot and fresh with real-time tracking!",
                                 style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center,
-                                color = Color.Gray
+                                color = Color(0xFF7A7067)
                             )
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
                             Button(
                                 onClick = { viewModel.navigateTo(Screen.Showcase) },
@@ -3282,11 +4887,12 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                     .fillMaxWidth(0.9f)
                                     .height(48.dp)
                                     .testTag("empty_active_go_showcase"),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD8582B))
                             ) {
-                                Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Browse Kitchen Dishes Now", fontWeight = FontWeight.Bold)
+                                Text("Browse Kitchen Dishes Now", fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
                     }
@@ -3294,14 +4900,16 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         item {
                             Text(
-                                text = "Active Shipments En Route",
+                                text = "Active Deliveries En Route",
+                                fontFamily = FontFamily.Serif,
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(bottom = 4.dp)
+                                color = Color(0xFF1B1612),
+                                modifier = Modifier.padding(bottom = 2.dp)
                             )
                         }
 
@@ -3310,9 +4918,10 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { viewModel.setTrackedOrder(order.id) },
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                             ) {
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Row(
@@ -3324,37 +4933,38 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                             Text(
                                                 text = "Order #${order.id}",
                                                 fontWeight = FontWeight.Bold,
-                                                style = MaterialTheme.typography.titleMedium
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = Color(0xFF1B1612)
                                             )
                                             Text(
                                                 text = "Chef: ${order.chefName}",
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = Color.Gray
+                                                color = Color(0xFF7A7067)
                                             )
                                         }
 
                                         // Status indicator chip
-                                        val (color, text) = when (order.step) {
-                                            0 -> Color(0xFFF9A825) to "Awaiting Cook"
-                                            1 -> Color(0xFF1565C0) to "Preparing Food"
-                                            else -> Color(0xFFE65100) to "En Route 🚴"
+                                        val (bgColor, textColor, text) = when (order.step) {
+                                            0 -> Triple(Color(0xFFFEF3C7), Color(0xFFB45309), "🍳 Awaiting Cook")
+                                            1 -> Triple(Color(0xFFFDE8E0), Color(0xFFD8582B), "🔥 Preparing Food")
+                                            else -> Triple(Color(0xFFE2F4E6), Color(0xFF1E432A), "🚴 En Route")
                                         }
 
                                         Surface(
-                                            color = color.copy(alpha = 0.15f),
+                                            color = bgColor,
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
                                             Text(
                                                 text = text,
-                                                color = color,
-                                                fontSize = 12.sp,
+                                                color = textColor,
+                                                fontSize = 11.sp,
                                                 fontWeight = FontWeight.ExtraBold,
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                                             )
                                         }
                                     }
 
-                                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFECE6DD))
 
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -3365,7 +4975,8 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                             Text(
                                                 text = "${order.quantity}x ${order.mealName}",
                                                 fontWeight = FontWeight.Bold,
-                                                style = MaterialTheme.typography.bodyMedium
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = Color(0xFF1B1612)
                                             )
                                             Text(
                                                 text = "Estimated arrival: " + when (order.step) {
@@ -3374,25 +4985,24 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                                     else -> "6 mins"
                                                 },
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = Color.Gray
+                                                color = Color(0xFF7A7067)
                                             )
                                         }
 
                                         Text(
                                             text = com.example.data.CurrencyHelper.formatPrice(order.totalAmount),
                                             fontWeight = FontWeight.ExtraBold,
-                                            color = MaterialTheme.colorScheme.primary,
+                                            color = Color(0xFFD8582B),
                                             style = MaterialTheme.typography.titleMedium
                                         )
                                     }
 
                                     Spacer(modifier = Modifier.height(14.dp))
 
-                                    // Direct visual progress slider bar
                                     val progressFraction = when (order.step) {
-                                        0 -> 0.15f
-                                        1 -> 0.5f
-                                        else -> 0.8f
+                                        0 -> 0.2f
+                                        1 -> 0.55f
+                                        else -> 0.85f
                                     }
                                     LinearProgressIndicator(
                                         progress = { progressFraction },
@@ -3400,11 +5010,11 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                             .fillMaxWidth()
                                             .height(6.dp)
                                             .clip(RoundedCornerShape(3.dp)),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                        color = Color(0xFFD8582B),
+                                        trackColor = Color(0xFFEFE9DF)
                                     )
 
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Spacer(modifier = Modifier.height(14.dp))
 
                                     Button(
                                         onClick = { viewModel.setTrackedOrder(order.id) },
@@ -3412,14 +5022,13 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                             .fillMaxWidth()
                                             .testTag("track_active_order_${order.id}"),
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                            containerColor = Color(0xFF1E432A)
                                         ),
-                                        shape = RoundedCornerShape(10.dp)
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Open Interactive Live GPS Tracker", fontWeight = FontWeight.Bold)
+                                        Text("Open Interactive Live GPS Tracker", fontWeight = FontWeight.Bold, color = Color.White)
                                     }
                                 }
                             }
@@ -3458,22 +5067,23 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                             Icon(
                                 imageVector = Icons.Default.Receipt,
                                 contentDescription = "Empty Past",
-                                tint = Color.LightGray,
-                                modifier = Modifier.size(80.dp)
+                                tint = Color(0xFF7A7067).copy(alpha = 0.5f),
+                                modifier = Modifier.size(70.dp)
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
                                 text = "No Completed Orders Found",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Color.Gray,
+                                fontFamily = FontFamily.Serif,
+                                color = Color(0xFF1B1612),
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "After meals arrive successfully, they appear in history for instant reordering or to write trust reviews.",
+                                text = "After meals arrive successfully, they appear in history for instant reordering or leaving reviews.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center,
-                                color = Color.LightGray
+                                color = Color(0xFF7A7067)
                             )
                         }
                     }
@@ -3481,26 +5091,26 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        // Stat Summary Section (True Dashboard visual highlights)
+                        // Stat Summary Section
                         item {
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(bottom = 8.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
-                                ),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                    .padding(bottom = 6.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                             ) {
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Text(
-                                        text = "History Dashboard Summary",
+                                        text = "Orders Summary",
+                                        fontFamily = FontFamily.Serif,
                                         fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.titleSmall,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = Color(0xFF1B1612)
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Row(
@@ -3510,8 +5120,8 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                         // Total Spent
                                         Card(
                                             modifier = Modifier.weight(1f),
-                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFAF6F0)),
+                                            shape = RoundedCornerShape(14.dp)
                                         ) {
                                             Column(
                                                 modifier = Modifier.padding(10.dp),
@@ -3520,19 +5130,20 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                                 Icon(
                                                     Icons.Default.TrendingUp,
                                                     contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    tint = Color(0xFFD8582B),
                                                     modifier = Modifier.size(18.dp)
                                                 )
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Text(
                                                     text = com.example.data.CurrencyHelper.formatPrice(totalSpent),
                                                     fontWeight = FontWeight.ExtraBold,
-                                                    fontSize = 13.sp
+                                                    fontSize = 12.sp,
+                                                    color = Color(0xFF1B1612)
                                                 )
                                                 Text(
                                                     text = "Total Spent",
                                                     fontSize = 9.sp,
-                                                    color = Color.Gray,
+                                                    color = Color(0xFF7A7067),
                                                     textAlign = TextAlign.Center
                                                 )
                                             }
@@ -3541,8 +5152,8 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                         // Total Orders
                                         Card(
                                             modifier = Modifier.weight(1f),
-                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFAF6F0)),
+                                            shape = RoundedCornerShape(14.dp)
                                         ) {
                                             Column(
                                                 modifier = Modifier.padding(10.dp),
@@ -3551,19 +5162,20 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                                 Icon(
                                                     Icons.Default.Restaurant,
                                                     contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    tint = Color(0xFFD8582B),
                                                     modifier = Modifier.size(18.dp)
                                                 )
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Text(
                                                     text = "${pastOrders.size}",
                                                     fontWeight = FontWeight.ExtraBold,
-                                                    fontSize = 13.sp
+                                                    fontSize = 12.sp,
+                                                    color = Color(0xFF1B1612)
                                                 )
                                                 Text(
                                                     text = "Total Orders",
                                                     fontSize = 9.sp,
-                                                    color = Color.Gray,
+                                                    color = Color(0xFF7A7067),
                                                     textAlign = TextAlign.Center
                                                 )
                                             }
@@ -3572,8 +5184,8 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                         // Avg Value
                                         Card(
                                             modifier = Modifier.weight(1f),
-                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFAF6F0)),
+                                            shape = RoundedCornerShape(14.dp)
                                         ) {
                                             Column(
                                                 modifier = Modifier.padding(10.dp),
@@ -3582,19 +5194,20 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                                 Icon(
                                                     Icons.Default.ShoppingBag,
                                                     contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    tint = Color(0xFFD8582B),
                                                     modifier = Modifier.size(18.dp)
                                                 )
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Text(
                                                     text = com.example.data.CurrencyHelper.formatPrice(averageOrderValue),
                                                     fontWeight = FontWeight.ExtraBold,
-                                                    fontSize = 13.sp
+                                                    fontSize = 12.sp,
+                                                    color = Color(0xFF1B1612)
                                                 )
                                                 Text(
                                                     text = "Avg Value",
                                                     fontSize = 9.sp,
-                                                    color = Color.Gray,
+                                                    color = Color(0xFF7A7067),
                                                     textAlign = TextAlign.Center
                                                 )
                                             }
@@ -3609,15 +5222,15 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(bottom = 8.dp),
+                                    .padding(bottom = 6.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 // Search Input
                                 OutlinedTextField(
                                     value = historySearchQuery,
                                     onValueChange = { historySearchQuery = it },
-                                    placeholder = { Text("Search meals or chefs...", fontSize = 13.sp) },
-                                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                    placeholder = { Text("Search meals or chefs...", fontSize = 13.sp, color = Color(0xFF7A7067)) },
+                                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF7A7067)) },
                                     trailingIcon = {
                                         if (historySearchQuery.isNotEmpty()) {
                                             IconButton(onClick = { historySearchQuery = "" }) {
@@ -3630,7 +5243,13 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                         .fillMaxWidth()
                                         .height(52.dp)
                                         .testTag("history_search_input"),
-                                    shape = RoundedCornerShape(12.dp)
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color.White,
+                                        unfocusedContainerColor = Color.White,
+                                        focusedBorderColor = Color(0xFFD8582B),
+                                        unfocusedBorderColor = Color(0xFFECE6DD)
+                                    )
                                 )
 
                                 // Sorting Filter Chips Scroll
@@ -3641,18 +5260,19 @@ fun OrdersScreen(viewModel: HomeChefViewModel) {
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Sort:", style = MaterialTheme.typography.bodySmall, color = Color.Gray, fontWeight = FontWeight.Bold)
+                                    Text("Sort:", style = MaterialTheme.typography.bodySmall, color = Color(0xFF7A7067), fontWeight = FontWeight.Bold)
                                     val options = listOf("Newest First", "Oldest First", "Price: High to Low", "Price: Low to High")
                                     options.forEachIndexed { index, label ->
                                         val isSelected = historySortOption == index
                                         FilterChip(
                                             selected = isSelected,
                                             onClick = { historySortOption = index },
-                                            label = { Text(label, fontSize = 11.sp) },
+                                            label = { Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                                             colors = FilterChipDefaults.filterChipColors(
-                                                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                                selectedLabelColor = MaterialTheme.colorScheme.primary
+                                                selectedContainerColor = Color(0xFFD8582B).copy(alpha = 0.12f),
+                                                selectedLabelColor = Color(0xFFD8582B)
                                             ),
+                                            shape = RoundedCornerShape(10.dp),
                                             modifier = Modifier.testTag("sort_chip_$index")
                                         )
                                     }
@@ -3741,9 +5361,10 @@ fun PastOrderCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("past_order_card_${order.id}"),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -3755,33 +5376,34 @@ fun PastOrderCard(
                     Text(
                         text = "Order #${order.id}",
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF1B1612)
                     )
                     Text(
                         text = "Chef: ${order.chefName}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        color = Color(0xFF7A7067)
                     )
                 }
 
                 Surface(
-                    color = Color(0xFF2E7D32).copy(alpha = 0.15f),
+                    color = Color(0xFFE2F4E6),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
                         Icon(
                             Icons.Default.Check,
                             contentDescription = null,
-                            tint = Color(0xFF2E7D32),
+                            tint = Color(0xFF1E432A),
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Served",
-                            color = Color(0xFF2E7D32),
+                            text = "Delivered",
+                            color = Color(0xFF1E432A),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
@@ -3789,7 +5411,7 @@ fun PastOrderCard(
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFECE6DD))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -3800,7 +5422,8 @@ fun PastOrderCard(
                     Text(
                         text = "${order.quantity}x ${order.mealName}",
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF1B1612)
                     )
                     val orderDate = remember(order.timestamp) {
                         try {
@@ -3813,14 +5436,14 @@ fun PastOrderCard(
                     Text(
                         text = orderDate,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        color = Color(0xFF7A7067)
                     )
                 }
 
                 Text(
                     text = com.example.data.CurrencyHelper.formatPrice(order.totalAmount),
                     fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = Color(0xFFD8582B),
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -3828,36 +5451,37 @@ fun PastOrderCard(
             // Collapsible details accordion
             if (isExpanded) {
                 Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                HorizontalDivider(color = Color(0xFFECE6DD))
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Stripe Secure Tx ID", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                        Text(order.paymentId, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        Text("Payment ID", style = MaterialTheme.typography.bodySmall, color = Color(0xFF7A7067))
+                        Text(order.paymentId, style = MaterialTheme.typography.bodySmall, color = Color(0xFFD8582B))
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Recipient Name", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                        Text(order.buyerName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                        Text("Recipient Name", style = MaterialTheme.typography.bodySmall, color = Color(0xFF7A7067))
+                        Text(order.buyerName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = Color(0xFF1B1612))
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Contact Phone", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                        Text(order.buyerPhone, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                        Text("Contact Phone", style = MaterialTheme.typography.bodySmall, color = Color(0xFF7A7067))
+                        Text(order.buyerPhone, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = Color(0xFF1B1612))
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Delivery Destination", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        Text("Delivery Destination", style = MaterialTheme.typography.bodySmall, color = Color(0xFF7A7067))
                         Text(
                             text = order.buyerAddress,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.End,
+                            color = Color(0xFF1B1612),
                             modifier = Modifier.weight(1f).padding(start = 16.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -3869,13 +5493,13 @@ fun PastOrderCard(
                     onClick = { isExpanded = !isExpanded },
                     modifier = Modifier
                         .size(38.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), shape = RoundedCornerShape(8.dp))
+                        .background(Color(0xFFFAF6F0), shape = RoundedCornerShape(10.dp))
                         .testTag("toggle_details_${order.id}")
                 ) {
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = "Toggle Details",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = Color(0xFF1B1612),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -3898,15 +5522,15 @@ fun PastOrderCard(
                         .weight(1.1f)
                         .height(38.dp)
                         .testTag("reorder_button_${order.id}"),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                        containerColor = Color(0xFFD8582B)
                     ),
                     contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Instant Reorder", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("Instant Reorder", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
 
                 // Leave rating review chip
@@ -3918,14 +5542,14 @@ fun PastOrderCard(
                         .weight(0.9f)
                         .height(38.dp)
                         .testTag("rate_past_order_${order.id}"),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary
+                        contentColor = Color(0xFF1B1612)
                     ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                    border = BorderStroke(1.dp, Color(0xFFECE6DD)),
                     contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
-                    Icon(Icons.Default.StarBorder, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.StarBorder, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFF1B1612))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Review Dish", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
@@ -4190,9 +5814,14 @@ fun ChefDetailScreen(chefId: Int, viewModel: HomeChefViewModel) {
     var selectedMealForRating by remember { mutableStateOf<MealEntity?>(null) }
     var activeOrderMeal by remember { mutableStateOf<MealEntity?>(null) }
     var activeTutorialUrl by remember { mutableStateOf<String?>(null) }
+    var showCameraDialog by remember { mutableStateOf(false) }
+    var showPayoutDialog by remember { mutableStateOf(false) }
+    var showEditPaypalDialog by remember { mutableStateOf(false) }
 
     // State for dedicated tabs
     var selectedTab by remember { mutableStateOf(0) }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     if (chef == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -4217,6 +5846,14 @@ fun ChefDetailScreen(chefId: Int, viewModel: HomeChefViewModel) {
         dist
     }
 
+    // Chef PayPal Payouts & Revenue state
+    val allOrders by viewModel.orders.collectAsState()
+    val chefOrders = remember(allOrders, activeChefNonNull.id) { allOrders.filter { it.chefId == activeChefNonNull.id } }
+    val chefGrossSales = remember(chefOrders) { chefOrders.sumOf { it.totalAmount } }
+    val chefPayouts by viewModel.getPayoutsForChef(activeChefNonNull.id).collectAsState(initial = emptyList())
+    val totalDisbursed = remember(chefPayouts) { chefPayouts.sumOf { it.amount } }
+    val availableBalance = remember(chefGrossSales, totalDisbursed) { (chefGrossSales - totalDisbursed).coerceAtLeast(0.0) }
+
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
@@ -4224,29 +5861,28 @@ fun ChefDetailScreen(chefId: Int, viewModel: HomeChefViewModel) {
                 .background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(bottom = 90.dp)
         ) {
-        // Upper banner graphic
+        // Upper banner graphic (Uber Minimalist Style)
         item {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.surface
-                            )
-                        )
-                    )
+                    .height(180.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 IconButton(
                     onClick = { viewModel.navigateTo(Screen.Explore) },
                     modifier = Modifier
                         .padding(16.dp)
-                        .background(Color.White.copy(alpha = 0.8f), CircleShape)
+                        .size(40.dp)
+                        .background(MaterialTheme.colorScheme.surface, CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
                         .align(Alignment.TopStart)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
                 }
 
                 // Chef identity profile chip overlay
@@ -4257,35 +5893,67 @@ fun ChefDetailScreen(chefId: Int, viewModel: HomeChefViewModel) {
                         .padding(16.dp),
                     verticalAlignment = Alignment.Bottom
                 ) {
-                    AsyncImage(
-                        model = activeChefNonNull.avatarUrl,
-                        contentDescription = "Avatar",
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .border(3.dp, Color.White, CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Box(
+                        modifier = Modifier.size(76.dp)
+                    ) {
+                        AsyncImage(
+                            model = activeChefNonNull.avatarUrl,
+                            contentDescription = "Avatar",
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                .clickable { showCameraDialog = true },
+                            contentScale = ContentScale.Crop
+                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .align(Alignment.BottomEnd)
+                                .clickable { showCameraDialog = true }
+                                .testTag("chef_detail_camera_button"),
+                            shadowElevation = 4.dp
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = "Change Profile Photo",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
                             activeChefNonNull.name,
                             fontWeight = FontWeight.ExtraBold,
                             style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = MaterialTheme.colorScheme.onSurface
                         )
+                        Spacer(modifier = Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Star,
-                                contentDescription = null,
-                                tint = Color(0xFFFFB300),
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF06C167)
+                            ) {
+                                Text(
+                                    text = "★ ${String.format("%.1f", avgRating)}",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "${String.format("%.1f", avgRating)} ⭐ • ${activeChefNonNull.cuisineType}",
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.bodyMedium
+                                activeChefNonNull.cuisineType,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -4318,6 +5986,12 @@ fun ChefDetailScreen(chefId: Int, viewModel: HomeChefViewModel) {
                     onClick = { selectedTab = 2 },
                     text = { Text("Ratings (${reviews.size})", fontWeight = FontWeight.Bold) },
                     icon = { Icon(Icons.Default.Star, contentDescription = "Ratings") }
+                )
+                Tab(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
+                    text = { Text("PayPal Payout", fontWeight = FontWeight.Bold) },
+                    icon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = "PayPal Chef Payout") }
                 )
             }
         }
@@ -4965,6 +6639,257 @@ fun ChefDetailScreen(chefId: Int, viewModel: HomeChefViewModel) {
                     }
                 }
             }
+            3 -> { // TAB 3: CHEF PAYPAL PAYOUTS & REVENUE
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF003087))
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.AccountBalanceWallet,
+                                        contentDescription = null,
+                                        tint = Color(0xFF00CFDE),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "PayPal Chef Earnings",
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                                Surface(
+                                    color = Color(0xFF0070BA),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        "Instant Deposit",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text("Gross Kitchen Sales", color = Color(0xFFB4D8F8), fontSize = 11.sp)
+                                    Text(
+                                        com.example.data.CurrencyHelper.formatPrice(chefGrossSales),
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    )
+                                }
+                                Column {
+                                    Text("Paid via PayPal", color = Color(0xFFB4D8F8), fontSize = 11.sp)
+                                    Text(
+                                        com.example.data.CurrencyHelper.formatPrice(totalDisbursed),
+                                        color = Color(0xFF90E0EF),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    )
+                                }
+                                Column {
+                                    Text("Available Balance", color = Color(0xFFB4D8F8), fontSize = 11.sp)
+                                    Text(
+                                        com.example.data.CurrencyHelper.formatPrice(availableBalance),
+                                        color = Color(0xFF00FF88),
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 18.sp
+                                    )
+                                }
+                            }
+
+                            Button(
+                                onClick = { showPayoutDialog = true },
+                                modifier = Modifier.fillMaxWidth().testTag("chef_payout_button"),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0070BA)),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                val amountToShow = if (availableBalance > 0.0) availableBalance else 50.0
+                                Text(
+                                    "Disburse Payout to PayPal • ${com.example.data.CurrencyHelper.formatPrice(amountToShow)}",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Linked PayPal Account Card
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color(0xFFEBF3FC),
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF0070BA), modifier = Modifier.size(20.dp))
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text("Chef PayPal Recipient Account", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text(
+                                        activeChefNonNull.paypalEmail.ifBlank { "No PayPal account configured" },
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF0070BA),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                            TextButton(onClick = { showEditPaypalDialog = true }, modifier = Modifier.testTag("edit_chef_paypal_btn")) {
+                                Text("Edit", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                // Payout History Header
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "PayPal Payout History (${chefPayouts.size})",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+
+                if (chefPayouts.isEmpty()) {
+                    item {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(36.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("No payouts recorded yet", fontWeight = FontWeight.Bold, color = Color.Gray)
+                                Text("Tap 'Disburse Payout to PayPal' above to test instant PayPal disbursements.", fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center)
+                            }
+                        }
+                    }
+                } else {
+                    items(chefPayouts) { payout ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color(0xFFE8F5E9),
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(20.dp))
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            payout.note.ifBlank { "PayPal Chef Payout" },
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp
+                                        )
+                                        Text(
+                                            "Batch: ${payout.payoutBatchId}",
+                                            fontSize = 11.sp,
+                                            color = Color.Gray
+                                        )
+                                        Text(
+                                            SimpleDateFormat("MMM d, yyyy • h:mm a", Locale.getDefault()).format(Date(payout.timestamp)),
+                                            fontSize = 10.sp,
+                                            color = Color.Gray
+                                        )
+                                    }
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        "+${com.example.data.CurrencyHelper.formatPrice(payout.amount)}",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF2E7D32)
+                                    )
+                                    Surface(
+                                        color = Color(0xFFE8F5E9),
+                                        shape = RoundedCornerShape(4.dp)
+                                    ) {
+                                        Text(
+                                            payout.status,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF2E7D32),
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -5017,6 +6942,160 @@ fun ChefDetailScreen(chefId: Int, viewModel: HomeChefViewModel) {
             chefName = activeChefNonNull.name,
             viewModel = viewModel,
             onDismiss = { activeOrderMeal = null }
+        )
+    }
+
+    if (showCameraDialog) {
+        CookCameraDialog(
+            targetType = CameraTargetType.COOK_AVATAR,
+            title = "Update ${activeChefNonNull.name}'s Photo",
+            subtitle = "Take a fresh profile photo with your camera or choose from gallery",
+            onPhotoCaptured = { savedUriString ->
+                viewModel.updateChefProfile(activeChefNonNull, newAvatarUrl = savedUriString)
+                showCameraDialog = false
+            },
+            onDismiss = { showCameraDialog = false }
+        )
+    }
+
+    if (showPayoutDialog) {
+        var payoutAmountText by remember { mutableStateOf("50.00") }
+        var isSubmitting by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { if (!isSubmitting) showPayoutDialog = false },
+            icon = {
+                Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color(0xFF0070BA), modifier = Modifier.size(32.dp))
+            },
+            title = {
+                Text("Disburse PayPal Payout", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "Direct deposit from platform funds to Chef ${activeChefNonNull.name}'s PayPal wallet.",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                    OutlinedTextField(
+                        value = payoutAmountText,
+                        onValueChange = { payoutAmountText = it },
+                        label = { Text("Payout Amount ($)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        leadingIcon = { Text("$", fontWeight = FontWeight.Bold, color = Color(0xFF0070BA)) },
+                        modifier = Modifier.fillMaxWidth().testTag("payout_amount_input")
+                    )
+                    Surface(
+                        color = Color(0xFFEBF3FC),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text("Recipient Account:", fontSize = 11.sp, color = Color.Gray)
+                            Text(activeChefNonNull.paypalEmail.ifBlank { "chef.paypal@example.com" }, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF003087))
+                        }
+                    }
+                    if (isSubmitting) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color(0xFF0070BA))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("Processing PayPal Payout...", fontSize = 12.sp, color = Color.Gray)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val amt = payoutAmountText.toDoubleOrNull() ?: 50.0
+                        isSubmitting = true
+                        scope.launch {
+                            val res = viewModel.executeChefPayPalPayout(
+                                chefId = activeChefNonNull.id,
+                                chefName = activeChefNonNull.name,
+                                amount = amt,
+                                paypalEmail = activeChefNonNull.paypalEmail.ifBlank { "chef.paypal@example.com" },
+                                note = "HomeChef Kitchen Earnings Payout"
+                            )
+                            isSubmitting = false
+                            showPayoutDialog = false
+                            when (res) {
+                                is com.example.data.UnifiedPaymentResult.Success -> {
+                                    Toast.makeText(context, "PayPal Payout Sent! Batch: ${res.transactionId}", Toast.LENGTH_LONG).show()
+                                }
+                                is com.example.data.UnifiedPaymentResult.Failure -> {
+                                    Toast.makeText(context, "Payout Failed: ${res.errorMessage}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isSubmitting,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0070BA)),
+                    modifier = Modifier.testTag("confirm_payout_button")
+                ) {
+                    Text("Send Payout via PayPal", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showPayoutDialog = false },
+                    enabled = !isSubmitting
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showEditPaypalDialog) {
+        var emailInput by remember { mutableStateOf(activeChefNonNull.paypalEmail) }
+
+        AlertDialog(
+            onDismissRequest = { showEditPaypalDialog = false },
+            icon = {
+                Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF0070BA), modifier = Modifier.size(32.dp))
+            },
+            title = {
+                Text("Chef PayPal Address", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Enter the chef's official PayPal account email address where kitchen earnings will be disbursed.", fontSize = 12.sp, color = Color.Gray)
+                    OutlinedTextField(
+                        value = emailInput,
+                        onValueChange = { emailInput = it },
+                        label = { Text("PayPal Email") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("chef_paypal_email_input")
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (emailInput.isNotBlank()) {
+                            viewModel.updateChefPaypalEmail(activeChefNonNull.id, emailInput.trim())
+                            Toast.makeText(context, "Chef PayPal address updated!", Toast.LENGTH_SHORT).show()
+                        }
+                        showEditPaypalDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0070BA)),
+                    modifier = Modifier.testTag("save_chef_paypal_btn")
+                ) {
+                    Text("Save Address", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditPaypalDialog = false }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 }
@@ -5106,6 +7185,16 @@ fun VideoPlayer(youtubeVideoUrl: String, modifier: Modifier = Modifier) {
                 } catch (e: Throwable) {
                     hasWebViewError = true
                 }
+            },
+            onRelease = { view ->
+                try {
+                    if (view is WebView) {
+                        view.stopLoading()
+                        view.destroy()
+                    }
+                } catch (e: Exception) {
+                    // ignore
+                }
             }
         )
     }
@@ -5135,6 +7224,26 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
 
     val context = LocalContext.current
 
+    var activeCameraTarget by remember { mutableStateOf<CameraTargetType?>(null) }
+
+    val avatarGalleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            val localPath = copyUriToInternalStorage(context, uri, "cook_avatar")
+            avatarUrl = localPath
+        }
+    }
+
+    val dishGalleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            val localPath = copyUriToInternalStorage(context, uri, "dish_photo")
+            dishImageUrl = localPath
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Publish Host Kitchen & Dishes 🍳", fontWeight = FontWeight.Bold) },
@@ -5147,7 +7256,7 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
             ) {
                 Text("1. Chef Social Profile & Avatar Photo 📸", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
 
-                // Profile Avatar Preview & URL Input
+                // Profile Avatar Preview & Camera Controls
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -5155,10 +7264,11 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(64.dp)
+                            .size(72.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                            .clickable { activeCameraTarget = CameraTargetType.COOK_AVATAR },
                         contentAlignment = Alignment.Center
                     ) {
                         AsyncImage(
@@ -5168,22 +7278,88 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(24.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.CameraAlt,
+                                contentDescription = "Camera",
+                                tint = Color.White,
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
                     }
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = avatarUrl,
-                            onValueChange = { avatarUrl = it },
-                            label = { Text("Profile Photo URL / Path") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            trailingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null) }
-                        )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Button(
+                            onClick = { activeCameraTarget = CameraTargetType.COOK_AVATAR },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp)
+                                .testTag("cook_profile_camera_button"),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Take Profile Photo (Camera) 📸", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                avatarGalleryLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(36.dp)
+                                .testTag("cook_profile_gallery_button"),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Choose from Gallery 🖼️", fontSize = 11.sp)
+                        }
                     }
                 }
 
+                if (avatarUrl.startsWith("file:") || avatarUrl.startsWith("content:")) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFE8F5E9),
+                        border = BorderStroke(1.dp, Color(0xFF4CAF50)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Custom Profile Photo Captured! ✓", color = Color(0xFF1B5E20), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = avatarUrl,
+                    onValueChange = { avatarUrl = it },
+                    label = { Text("Profile Photo URL / Local Path") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    trailingIcon = { Icon(Icons.Default.PhotoCamera, contentDescription = null) }
+                )
+
                 // Preset Chef Avatars
-                Text("Select Sample Avatar Preset:", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text("Or select sample avatar preset:", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf(
                         "👩‍🍳 Amara" to "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
@@ -5236,7 +7412,7 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
 
                 Text("2. Signature Dish Details & Food Picture 🥘", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
 
-                // Food Image Preview & URL Input
+                // Food Image Preview & Camera Controls
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -5244,10 +7420,11 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(72.dp)
+                            .size(76.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .border(2.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(12.dp)),
+                            .border(2.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(12.dp))
+                            .clickable { activeCameraTarget = CameraTargetType.DISH_PHOTO },
                         contentAlignment = Alignment.Center
                     ) {
                         AsyncImage(
@@ -5257,19 +7434,85 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(24.dp)
+                                .background(MaterialTheme.colorScheme.secondary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.CameraAlt,
+                                contentDescription = "Camera",
+                                tint = Color.White,
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
                     }
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = dishImageUrl,
-                            onValueChange = { dishImageUrl = it },
-                            label = { Text("Food Photo URL or Keyword") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            trailingIcon = { Icon(Icons.Default.AddPhotoAlternate, contentDescription = null) }
-                        )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Button(
+                            onClick = { activeCameraTarget = CameraTargetType.DISH_PHOTO },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp)
+                                .testTag("cook_dish_camera_button"),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Capture Dish Photo (Camera) 🥘", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                dishGalleryLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(36.dp)
+                                .testTag("cook_dish_gallery_button"),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Choose from Gallery 🖼️", fontSize = 11.sp)
+                        }
                     }
                 }
+
+                if (dishImageUrl.startsWith("file:") || dishImageUrl.startsWith("content:")) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFE8F5E9),
+                        border = BorderStroke(1.dp, Color(0xFF4CAF50)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Custom Dish Photo Captured! ✓", color = Color(0xFF1B5E20), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = dishImageUrl,
+                    onValueChange = { dishImageUrl = it },
+                    label = { Text("Food Photo URL or Keyword") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    trailingIcon = { Icon(Icons.Default.AddPhotoAlternate, contentDescription = null) }
+                )
 
                 // Preset Food Photos
                 Text("Select Popular Dish Photo Preset:", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
@@ -5365,6 +7608,23 @@ fun RegisterKitchenDialog(viewModel: HomeChefViewModel, onDismiss: () -> Unit) {
             }
         }
     )
+
+    if (activeCameraTarget != null) {
+        CookCameraDialog(
+            targetType = activeCameraTarget!!,
+            title = if (activeCameraTarget == CameraTargetType.COOK_AVATAR) "Cook Profile Photo Camera" else "Signature Dish Food Camera",
+            subtitle = if (activeCameraTarget == CameraTargetType.COOK_AVATAR) "Take a real photo of yourself as a home chef" else "Snap your delicious homemade specialty dish",
+            onPhotoCaptured = { savedUriString ->
+                if (activeCameraTarget == CameraTargetType.COOK_AVATAR) {
+                    avatarUrl = savedUriString
+                } else {
+                    dishImageUrl = savedUriString
+                }
+                activeCameraTarget = null
+            },
+            onDismiss = { activeCameraTarget = null }
+        )
+    }
 }
 
 // DIALOG: MANAGE EXISTING HOST KITCHEN PROFILE & DISH PHOTOS
@@ -5395,6 +7655,26 @@ fun ManageHostKitchenPhotosDialog(
     var editDishName by remember(selectedMeal) { mutableStateOf(selectedMeal?.name ?: "") }
     var editDishPrice by remember(selectedMeal) { mutableStateOf(selectedMeal?.price?.toString() ?: "12.0") }
     var editDishImageUrl by remember(selectedMeal) { mutableStateOf(selectedMeal?.imageUrl ?: "") }
+
+    var activeCameraTarget by remember { mutableStateOf<CameraTargetType?>(null) }
+
+    val editAvatarGalleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            val localPath = copyUriToInternalStorage(context, uri, "cook_avatar")
+            editAvatarUrl = localPath
+        }
+    }
+
+    val editDishGalleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            val localPath = copyUriToInternalStorage(context, uri, "dish_photo")
+            editDishImageUrl = localPath
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -5434,9 +7714,10 @@ fun ManageHostKitchenPhotosDialog(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(60.dp)
+                                .size(64.dp)
                                 .clip(CircleShape)
-                                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                .clickable { activeCameraTarget = CameraTargetType.COOK_AVATAR },
                             contentAlignment = Alignment.Center
                         ) {
                             AsyncImage(
@@ -5448,11 +7729,39 @@ fun ManageHostKitchenPhotosDialog(
                             )
                         }
 
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Button(
+                                    onClick = { activeCameraTarget = CameraTargetType.COOK_AVATAR },
+                                    modifier = Modifier.weight(1f).height(36.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Camera 📸", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        editAvatarGalleryLauncher.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f).height(36.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Gallery 🖼️", fontSize = 11.sp)
+                                }
+                            }
+
                             OutlinedTextField(
                                 value = editAvatarUrl,
                                 onValueChange = { editAvatarUrl = it },
-                                label = { Text("Chef Avatar URL / Path") },
+                                label = { Text("Avatar URL / Path") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -5512,9 +7821,10 @@ fun ManageHostKitchenPhotosDialog(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(64.dp)
+                                    .size(68.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .border(2.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(10.dp)),
+                                    .border(2.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(10.dp))
+                                    .clickable { activeCameraTarget = CameraTargetType.DISH_PHOTO },
                                 contentAlignment = Alignment.Center
                             ) {
                                 AsyncImage(
@@ -5526,11 +7836,40 @@ fun ManageHostKitchenPhotosDialog(
                                 )
                             }
 
-                            Column(modifier = Modifier.weight(1f)) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Button(
+                                        onClick = { activeCameraTarget = CameraTargetType.DISH_PHOTO },
+                                        modifier = Modifier.weight(1f).height(36.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                    ) {
+                                        Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Camera 🥘", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    OutlinedButton(
+                                        onClick = {
+                                            editDishGalleryLauncher.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                            )
+                                        },
+                                        modifier = Modifier.weight(1f).height(36.dp),
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                    ) {
+                                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Gallery 🖼️", fontSize = 11.sp)
+                                    }
+                                }
+
                                 OutlinedTextField(
                                     value = editDishImageUrl,
                                     onValueChange = { editDishImageUrl = it },
-                                    label = { Text("Food Photo URL or Keyword") },
+                                    label = { Text("Food Photo URL / Keyword") },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -5599,6 +7938,23 @@ fun ManageHostKitchenPhotosDialog(
             }
         }
     )
+
+    if (activeCameraTarget != null) {
+        CookCameraDialog(
+            targetType = activeCameraTarget!!,
+            title = if (activeCameraTarget == CameraTargetType.COOK_AVATAR) "Update Cook Avatar Photo" else "Update Dish Photo",
+            subtitle = if (activeCameraTarget == CameraTargetType.COOK_AVATAR) "Snap a live chef photo or choose from device gallery" else "Capture a fresh photo of your culinary preparation",
+            onPhotoCaptured = { savedUriString ->
+                if (activeCameraTarget == CameraTargetType.COOK_AVATAR) {
+                    editAvatarUrl = savedUriString
+                } else {
+                    editDishImageUrl = savedUriString
+                }
+                activeCameraTarget = null
+            },
+            onDismiss = { activeCameraTarget = null }
+        )
+    }
 }
 
 @Composable
@@ -5920,7 +8276,7 @@ fun ReviewDialog(
     )
 }
 
-// DIALOG: CHECKOUT SECURE PAYMENTS POWERED BY STRIPE
+// DIALOG: CHECKOUT SECURE PAYMENTS (GOOGLE PLAY / GOOGLE PAY / CASH / CARD)
 @Composable
 fun OrderCheckoutDialog(
     meal: MealEntity,
@@ -5933,52 +8289,94 @@ fun OrderCheckoutDialog(
     initialPhone: String = ""
 ) {
     var quantity by remember { mutableStateOf(initialQuantity) }
-    var name by remember { mutableStateOf(initialName) }
-    var address by remember { mutableStateOf(initialAddress) }
-    var phone by remember { mutableStateOf(initialPhone) }
+    var name by remember { mutableStateOf(initialName.ifBlank { "Alex Morgan" }) }
+    var address by remember { mutableStateOf(initialAddress.ifBlank { "742 Evergreen Terrace, Apt 4B" }) }
+    var phone by remember { mutableStateOf(initialPhone.ifBlank { "+1 (555) 019-2834" }) }
+    var buyerEmail by remember { mutableStateOf("alex.morgan@paypal.com") }
 
-    // Card Details checkout simulation parameters
-    var cardNum by remember { mutableStateOf("") }
-    var cardExpiry by remember { mutableStateOf("") }
-    var cardCvv by remember { mutableStateOf("") }
+    // Selected payment method: Default to PayPal for real customer payments and instant chef settlement
+    var selectedMethod by remember { mutableStateOf(com.example.data.PaymentMethodType.PAYPAL) }
 
-    val totalCost = remember(quantity) { meal.price * quantity }
+    val isCitchClubMember by viewModel.isCitchClubMember.collectAsState()
+    val chefs by viewModel.chefs.collectAsState()
+    val chef = remember(chefs, meal.chefId) { chefs.find { it.id == meal.chefId } }
+    val commissionRate = chef?.commissionRate ?: 0.15
+
+    val foodSubtotal = remember(quantity, meal.price) { meal.price * quantity }
+    val memberDiscount = remember(isCitchClubMember, foodSubtotal) {
+        if (isCitchClubMember) foodSubtotal * 0.10 else 0.0
+    }
+    val discountedFoodSubtotal = foodSubtotal - memberDiscount
+    val isFreeDelivery = isCitchClubMember && discountedFoodSubtotal >= 15.0
+    val deliveryFee = if (isFreeDelivery) 0.0 else 3.50
+    val totalCost = discountedFoodSubtotal + deliveryFee
+
+    val platformCommissionFee = foodSubtotal * commissionRate
+    val hostKitchenCredit = foodSubtotal - platformCommissionFee
+
     val context = LocalContext.current
     val isLiveMode by viewModel.isLiveMode.collectAsState()
     val scope = rememberCoroutineScope()
 
-    // Stripe process states: "INPUT", "PROCESSING", "SUCCESS", "FAILURE"
+    // Payment process states: "INPUT", "PROCESSING", "SUCCESS", "FAILURE"
     var paymentStage by remember { mutableStateOf("INPUT") }
-    var stripeStatusMessage by remember { mutableStateOf("") }
-    var stripeErrorMessage by remember { mutableStateOf("") }
-    var stripeTxId by remember { mutableStateOf("") }
-
-    // Detected Brand Icon
-    val cardBrand = remember(cardNum) {
-        val clean = cardNum.replace(" ", "")
-        when {
-            clean.startsWith("4") -> "Visa ⭐"
-            clean.startsWith("5") -> "Mastercard 🌟"
-            clean.startsWith("3") -> "American Express"
-            else -> "Credit/Debit Card"
-        }
-    }
+    var paymentStatusMessage by remember { mutableStateOf("") }
+    var paymentErrorMessage by remember { mutableStateOf("") }
+    var transactionReference by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = { if (paymentStage != "PROCESSING") onDismiss() },
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = if (isLiveMode) MaterialTheme.colorScheme.primary else Color(0xFF2E7D32),
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Text(
-                    text = if (isLiveMode) "Stripe Live Checkout" else "Stripe Sandbox Checkout",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleMedium
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = when (selectedMethod) {
+                                com.example.data.PaymentMethodType.PAYPAL -> Icons.Default.AccountBalanceWallet
+                                com.example.data.PaymentMethodType.GOOGLE_PLAY_BILLING -> Icons.Default.PlayArrow
+                                com.example.data.PaymentMethodType.GOOGLE_PAY -> Icons.Default.PlayCircle
+                                com.example.data.PaymentMethodType.ONE_TAP_CASH -> Icons.Default.Payments
+                            },
+                            contentDescription = null,
+                            tint = when (selectedMethod) {
+                                com.example.data.PaymentMethodType.PAYPAL -> Color(0xFF0070BA)
+                                com.example.data.PaymentMethodType.GOOGLE_PLAY_BILLING -> Color(0xFF01875F)
+                                com.example.data.PaymentMethodType.GOOGLE_PAY -> Color(0xFF01875F)
+                                com.example.data.PaymentMethodType.ONE_TAP_CASH -> Color(0xFF06C167)
+                            },
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "Checkout & Payment",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = when (selectedMethod) {
+                            com.example.data.PaymentMethodType.PAYPAL -> "PayPal Express Checkout"
+                            com.example.data.PaymentMethodType.GOOGLE_PLAY_BILLING -> "Google Play In-App Billing"
+                            com.example.data.PaymentMethodType.GOOGLE_PAY -> "Google Pay Fast Pass"
+                            com.example.data.PaymentMethodType.ONE_TAP_CASH -> "Cash on Handover"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = when (selectedMethod) {
+                            com.example.data.PaymentMethodType.PAYPAL -> Color(0xFF0070BA)
+                            else -> Color(0xFF01875F)
+                        },
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         },
         text = {
@@ -5986,212 +8384,428 @@ fun OrderCheckoutDialog(
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
                     .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 if (paymentStage == "INPUT") {
-                    Text("Order Item: ${meal.name} by $chefName", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    Text("Unit Price: ${com.example.data.CurrencyHelper.formatPrice(meal.price)}", style = MaterialTheme.typography.bodyMedium)
-
-                    // Quantity counter selection
-                    Row(
+                    // Order Summary Card (Uber White Style)
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Select Order Quantity:", fontWeight = FontWeight.Medium)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { if (quantity > 1) quantity-- }, modifier = Modifier.size(36.dp)) {
-                                Icon(Icons.Default.RemoveCircleOutline, contentDescription = "Desc")
-                            }
-                            Text(quantity.toString(), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
-                            IconButton(onClick = { quantity++ }, modifier = Modifier.size(36.dp)) {
-                                Icon(Icons.Default.AddCircleOutline, contentDescription = "Inc")
-                            }
-                        }
-                    }
-
-                    // ENVIRONMENT SELECTOR TOGGLE INSIDE DIALOG
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (isLiveMode) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f) else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f),
-                        border = BorderStroke(1.dp, if (isLiveMode) MaterialTheme.colorScheme.error.copy(alpha = 0.3f) else MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f))
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = meal.name,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        text = "Kitchen: $chefName",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.Gray
+                                    )
+                                }
                                 Text(
-                                    text = if (isLiveMode) "Stripe Live Mode Active 🌐" else "Stripe Sandbox Simulation 🛠️",
+                                    text = com.example.data.CurrencyHelper.formatPrice(meal.price),
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
-                                    color = if (isLiveMode) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
-                                )
-                                Text(
-                                    text = if (isLiveMode) "Requires active endpoint: ${viewModel.liveBackendUrl.value}" else "Processes offline cards instantly",
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = MaterialTheme.typography.bodyLarge
                                 )
                             }
-                            Switch(
-                                checked = isLiveMode,
-                                onCheckedChange = { viewModel.toggleLiveMode(it) },
-                                modifier = Modifier.height(24.dp)
-                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Quantity Selector
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Quantity", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .background(Color.White, RoundedCornerShape(20.dp))
+                                        .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(20.dp))
+                                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = { if (quantity > 1) quantity-- },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp))
+                                    }
+                                    Text(
+                                        text = "$quantity",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.padding(horizontal = 8.dp)
+                                    )
+                                    IconButton(
+                                        onClick = { quantity++ },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
                         }
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-
-                    Text("Delivery Context Information", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    // Delivery Info Section
+                    Text("Delivery Details", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Your Full Name") },
+                        label = { Text("Full Name") },
                         singleLine = true,
+                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth().testTag("checkout_name_input")
                     )
                     OutlinedTextField(
                         value = address,
                         onValueChange = { address = it },
-                        label = { Text("Delivery Destination Street Address") },
+                        label = { Text("Delivery Address") },
                         singleLine = true,
+                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth().testTag("checkout_address_input")
                     )
                     OutlinedTextField(
                         value = phone,
                         onValueChange = { phone = it },
-                        label = { Text("Mobile Contact Number") },
+                        label = { Text("Phone Number") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         singleLine = true,
+                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth().testTag("checkout_phone_input")
                     )
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    // Payment Method Selector
+                    Text("Select Payment Method", fontWeight = FontWeight.Bold, fontSize = 13.sp)
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Card Details ($cardBrand)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Icon(Icons.Default.Payment, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(16.dp))
+                    com.example.data.PaymentMethodType.values().forEach { method ->
+                        val isSelected = selectedMethod == method
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedMethod = method },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) Color(0xFF000000) else MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(
+                                1.5.dp,
+                                if (isSelected) Color(0xFF000000) else Color(0xFFE5E5E5)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = when (method) {
+                                            com.example.data.PaymentMethodType.PAYPAL -> Icons.Default.AccountBalanceWallet
+                                            com.example.data.PaymentMethodType.GOOGLE_PLAY_BILLING -> Icons.Default.PlayArrow
+                                            com.example.data.PaymentMethodType.GOOGLE_PAY -> Icons.Default.PlayCircle
+                                            com.example.data.PaymentMethodType.ONE_TAP_CASH -> Icons.Default.LocalAtm
+                                        },
+                                        contentDescription = null,
+                                        tint = if (isSelected) Color.White else when (method) {
+                                            com.example.data.PaymentMethodType.PAYPAL -> Color(0xFF0070BA)
+                                            com.example.data.PaymentMethodType.ONE_TAP_CASH -> Color(0xFF06C167)
+                                            else -> Color(0xFF01875F)
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = method.title,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            color = if (isSelected) Color.White else Color.Black
+                                        )
+                                        Text(
+                                            text = method.subtitle,
+                                            fontSize = 11.sp,
+                                            color = if (isSelected) Color(0xFFD5D5D5) else Color.Gray
+                                        )
+                                    }
+                                }
+                                Surface(
+                                    color = if (isSelected) {
+                                        if (method == com.example.data.PaymentMethodType.PAYPAL) Color(0xFF0070BA) else Color(0xFF01875F)
+                                    } else Color.White,
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        text = method.badge,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) Color.White else Color.DarkGray,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
 
-                    // AUTOFILL CHIPS FOR TEST CARDS
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    // PayPal Email & Buyer Protection Info Card
+                    if (selectedMethod == com.example.data.PaymentMethodType.PAYPAL) {
+                        OutlinedTextField(
+                            value = buyerEmail,
+                            onValueChange = { buyerEmail = it },
+                            label = { Text("PayPal Account Email") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                            leadingIcon = {
+                                Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF0070BA))
+                            },
+                            modifier = Modifier.fillMaxWidth().testTag("checkout_paypal_email_input")
+                        )
+
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFEBF3FC),
+                            border = BorderStroke(1.dp, Color(0xFFB9D7F9)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.VerifiedUser,
+                                    contentDescription = null,
+                                    tint = Color(0xFF0070BA),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        "Official PayPal Checkout & Chef Payout",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF003087)
+                                    )
+                                    Text(
+                                        "Secure instant transfer to Chef $chefName. Protected by PayPal Purchase Protection.",
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF00457C)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Google Play Billing Info Card
+                    if (selectedMethod == com.example.data.PaymentMethodType.GOOGLE_PLAY_BILLING) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFE6F4EA),
+                            border = BorderStroke(1.dp, Color(0xFFCEEAD6)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.VerifiedUser,
+                                    contentDescription = null,
+                                    tint = Color(0xFF01875F),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        "Official Google Play Billing 7.1",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF0D652D)
+                                    )
+                                    Text(
+                                        "Instant 1-Tap checkout with saved cards, Play balance, UPI, or PayPal.",
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF137333)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Citch Club Diner Perks Banner
+                    if (!isCitchClubMember) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFFFF7ED),
+                            border = BorderStroke(1.dp, Color(0xFFFFEDD5)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "🌟 Join Citch Club ($9.99/mo)",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF9A3412)
+                                    )
+                                    Text(
+                                        "Save ${com.example.data.CurrencyHelper.formatPrice(foodSubtotal * 0.10)} on this order & get Free Delivery over $15!",
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF7A7067)
+                                    )
+                                }
+                                Button(
+                                    onClick = { viewModel.toggleCitchClubMembership(true) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD8582B)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.height(30.dp)
+                                ) {
+                                    Text("Apply 10%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
+                    } else {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFF0FDF4),
+                            border = BorderStroke(1.dp, Color(0xFFBBF7D0)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Verified, contentDescription = null, tint = Color(0xFF15803D), modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    "Citch Club Perks: -${com.example.data.CurrencyHelper.formatPrice(memberDiscount)} discount + ${if (isFreeDelivery) "FREE Delivery" else "$3.50 Delivery"}",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF15803D)
+                                )
+                            }
+                        }
+                    }
+
+                    // Itemized Receipt Breakdown
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFFBF9F7),
+                        border = BorderStroke(1.dp, Color(0xFFECE6DD)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        AssistChip(
-                            onClick = {
-                                cardNum = "4242 4242 4242 4242"
-                                cardExpiry = "12/28"
-                                cardCvv = "123"
-                                if (isLiveMode) {
-                                    viewModel.toggleLiveMode(false)
-                                    Toast.makeText(context, "Switched to Sandbox Mode for simulation!", Toast.LENGTH_SHORT).show()
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Food Subtotal ($quantity items):", fontSize = 12.sp, color = Color(0xFF7A7067))
+                                Text(com.example.data.CurrencyHelper.formatPrice(foodSubtotal), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1B1612))
+                            }
+                            if (isCitchClubMember && memberDiscount > 0.0) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Citch Club Member (10% off):", fontSize = 12.sp, color = Color(0xFF15803D))
+                                    Text("-${com.example.data.CurrencyHelper.formatPrice(memberDiscount)}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D))
                                 }
-                            },
-                            label = { Text("Autofill Pass ⭐", fontSize = 10.sp) }
-                        )
-                        AssistChip(
-                            onClick = {
-                                cardNum = "4000 0000 0000 0002"
-                                cardExpiry = "11/27"
-                                cardCvv = "999"
-                                if (isLiveMode) {
-                                    viewModel.toggleLiveMode(false)
-                                    Toast.makeText(context, "Switched to Sandbox Mode for simulation!", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            label = { Text("Autofill Decline ❌", fontSize = 10.sp) }
-                        )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Delivery Fee:", fontSize = 12.sp, color = Color(0xFF7A7067))
+                                Text(
+                                    if (isFreeDelivery) "FREE (Citch Club)" else com.example.data.CurrencyHelper.formatPrice(deliveryFee),
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isFreeDelivery) FontWeight.Bold else FontWeight.SemiBold,
+                                    color = if (isFreeDelivery) Color(0xFF15803D) else Color(0xFF1B1612)
+                                )
+                            }
+                            Divider(color = Color(0xFFECE6DD), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 2.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Total to Pay:", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1B1612))
+                                Text(
+                                    text = com.example.data.CurrencyHelper.formatPrice(totalCost),
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 18.sp,
+                                    color = Color(0xFFD8582B)
+                                )
+                            }
+                        }
                     }
 
-                    OutlinedTextField(
-                        value = cardNum,
-                        onValueChange = { if (it.length <= 19) cardNum = it },
-                        label = { Text("Card Number (15-16 digits with spaces)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().testTag("checkout_card_input")
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // Marketplace Commission & Take-Rate Transparency Pill
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFF3F4F6),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        OutlinedTextField(
-                            value = cardExpiry,
-                            onValueChange = { if (it.length <= 5) cardExpiry = it },
-                            label = { Text("MM/YY Expiry") },
-                            placeholder = { Text("12/28") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.weight(1f).testTag("checkout_expiry_input")
-                        )
-                        OutlinedTextField(
-                            value = cardCvv,
-                            onValueChange = { if (it.length <= 4) cardCvv = it },
-                            label = { Text("CVV Security") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.weight(1f).testTag("checkout_cvv_input")
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                if (isLiveMode) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                                else Color(0xFFE8F5E9),
-                                RoundedCornerShape(8.dp)
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF6B7280), modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "Marketplace split: Kitchen receives ${com.example.data.CurrencyHelper.formatPrice(hostKitchenCredit)} · Citch platform fee (${(commissionRate * 100).toInt()}%) ${com.example.data.CurrencyHelper.formatPrice(platformCommissionFee)}",
+                                fontSize = 10.sp,
+                                color = Color(0xFF4B5563)
                             )
-                            .padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.VerifiedUser,
-                            contentDescription = "SSL Verified",
-                            tint = if (isLiveMode) MaterialTheme.colorScheme.primary else Color(0xFF2E7D32),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (isLiveMode) {
-                                "Stripe production environment: End-to-end encrypted under PCI-DSS standards."
-                            } else {
-                                "Operative sandbox mode. Valid test credentials (e.g., 4242 4242...) pass safely."
-                            },
-                            fontSize = 10.sp,
-                            color = if (isLiveMode) MaterialTheme.colorScheme.onPrimaryContainer else Color(0xFF2E7D32),
-                            modifier = Modifier.weight(1f)
-                        )
+                        }
                     }
                 } else if (paymentStage == "PROCESSING") {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 24.dp),
+                            .padding(vertical = 28.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         CircularProgressIndicator(
-                            color = if (isLiveMode) MaterialTheme.colorScheme.primary else Color(0xFF2E7D32),
+                            color = if (selectedMethod == com.example.data.PaymentMethodType.PAYPAL) Color(0xFF0070BA) else Color(0xFF01875F),
                             modifier = Modifier.size(48.dp)
                         )
                         Text(
-                            "Processing Stripe Payout Gateway...",
+                            when (selectedMethod) {
+                                com.example.data.PaymentMethodType.PAYPAL -> "Authorizing PayPal Order & Chef Settlement..."
+                                com.example.data.PaymentMethodType.GOOGLE_PLAY_BILLING -> "Launching Google Play In-App Billing..."
+                                com.example.data.PaymentMethodType.GOOGLE_PAY -> "Authorizing with Google Pay Fast Pass..."
+                                com.example.data.PaymentMethodType.ONE_TAP_CASH -> "Confirming Cash on Delivery Order..."
+                            },
                             fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center
                         )
                         Text(
-                            stripeStatusMessage,
+                            paymentStatusMessage,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Color.Gray,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -6205,38 +8819,41 @@ fun OrderCheckoutDialog(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(56.dp)
-                                .background(Color(0xFFE8F5E9), CircleShape),
+                                .size(60.dp)
+                                .background(Color(0xFF01875F), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                Icons.Default.CheckCircle,
+                                Icons.Default.Check,
                                 contentDescription = "Success",
-                                tint = Color(0xFF2E7D32),
+                                tint = Color.White,
                                 modifier = Modifier.size(36.dp)
                             )
                         }
                         Text(
-                            "Stripe Payment Received!",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color(0xFF2E7D32)
+                            "Order Placed Successfully!",
+                            fontWeight = FontWeight.ExtraBold,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Color.Black
                         )
                         Text(
-                            "Transaction authorized and resolved successfully. Your chef has been credited.",
-                            style = MaterialTheme.typography.bodySmall,
+                            "Your kitchen host has received the ticket and started preparing your fresh meal.",
+                            style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color.Gray
                         )
                         Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFF6F6F6),
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Text("Transaction Target: $stripeTxId", style = MaterialTheme.typography.labelSmall)
-                                Text("Method: Credit card ending in (${cardNum.takeLast(4)})", style = MaterialTheme.typography.labelSmall)
-                                Text("Total processed: ${com.example.data.CurrencyHelper.formatPrice(totalCost)}", style = MaterialTheme.typography.labelSmall)
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("Payment: ${selectedMethod.title}", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("Ref: $transactionReference", fontSize = 11.sp, color = Color.DarkGray)
+                                Text("Total Paid: ${com.example.data.CurrencyHelper.formatPrice(totalCost)}", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+                                Text("Kitchen Credited: ${com.example.data.CurrencyHelper.formatPrice(hostKitchenCredit)} (Net)", fontSize = 11.sp, color = Color(0xFF15803D), fontWeight = FontWeight.SemiBold)
+                                Text("Citch Take-Rate (${(commissionRate * 100).toInt()}%): ${com.example.data.CurrencyHelper.formatPrice(platformCommissionFee)}", fontSize = 10.sp, color = Color.Gray)
+                                Text("Deliver to: $address", fontSize = 11.sp, color = Color.Gray)
                             }
                         }
                     }
@@ -6262,60 +8879,22 @@ fun OrderCheckoutDialog(
                             )
                         }
                         Text(
-                            "Stripe Verification Failed",
+                            "Payment Failed",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
                         Text(
-                            stripeErrorMessage,
+                            paymentErrorMessage,
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color.Gray
                         )
-
-                        if (isLiveMode) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        "Sandbox Testing Tip 💡",
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    Text(
-                                        "Live Mode requires a custom, running Stripe API backend. For a local, instant, zero-setup connection experience, switch to Sandbox Mode to simulate actual PCI-DSS billing.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    Button(
-                                        onClick = {
-                                            viewModel.toggleLiveMode(false)
-                                            paymentStage = "INPUT"
-                                            Toast.makeText(context, "Developer Sandbox Mode active!", Toast.LENGTH_SHORT).show()
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                    ) {
-                                        Text("Toggle Sandbox & Try Autofill")
-                                    }
-                                }
-                            }
-                        }
-
                         Button(
                             onClick = { paymentStage = "INPUT" },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.outline)
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
                         ) {
-                            Text("Retry Billing Options")
+                            Text("Try Another Payment Method")
                         }
                     }
                 }
@@ -6325,70 +8904,157 @@ fun OrderCheckoutDialog(
             if (paymentStage == "INPUT") {
                 Button(
                     onClick = {
-                        val cleanCard = cardNum.replace(" ", "")
-                        if (name.isEmpty() || address.isEmpty() || phone.isEmpty() || cleanCard.length < 15) {
-                            Toast.makeText(context, "Please complete fields and credit credentials.", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        if (cardExpiry.length < 5 || cardCvv.length < 3) {
-                            Toast.makeText(context, "Verify your Expiry and CVV codes.", Toast.LENGTH_SHORT).show()
+                        if (name.isBlank() || address.isBlank() || phone.isBlank()) {
+                            Toast.makeText(context, "Please fill in your delivery contact info.", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
                         scope.launch {
                             paymentStage = "PROCESSING"
-                            stripeStatusMessage = "1. Creating dynamic secure PaymentIntent sessions..."
-                            
-                            // Call processStripePayment through the view model
-                            val billingRes = viewModel.processStripePayment(
-                                amount = totalCost,
-                                cardNum = cardNum,
-                                expiry = cardExpiry,
-                                cvv = cardCvv,
-                                description = "Payment for ${meal.name} by ${name}"
-                            )
-
-                            when (billingRes) {
-                                is StripePaymentResult.Success -> {
-                                    stripeTxId = billingRes.transactionId
-                                    stripeStatusMessage = "2. Finalizing billing record sync with local Room DB..."
-                                    
-                                    viewModel.requestOrder(
-                                        meal = meal,
-                                        chefName = chefName,
-                                        quantity = quantity,
-                                        buyerName = name,
-                                        buyerAddress = address,
-                                        buyerPhone = phone,
-                                        onSuccess = { orderId ->
-                                            paymentStage = "SUCCESS"
-                                        }
+                            when (selectedMethod) {
+                                com.example.data.PaymentMethodType.PAYPAL -> {
+                                    paymentStatusMessage = "Processing PayPal payment & transferring directly to Chef $chefName..."
+                                    val res = viewModel.processPayPalPayment(
+                                        amount = totalCost,
+                                        buyerEmail = buyerEmail.ifBlank { "customer@paypal.com" },
+                                        dishName = meal.name,
+                                        chefId = meal.chefId,
+                                        chefName = chefName
                                     )
+                                    when (res) {
+                                        is com.example.data.UnifiedPaymentResult.Success -> {
+                                            transactionReference = res.transactionId
+                                            viewModel.requestOrder(
+                                                meal = meal,
+                                                chefName = chefName,
+                                                quantity = quantity,
+                                                buyerName = name,
+                                                buyerAddress = address,
+                                                buyerPhone = phone,
+                                                paymentMethod = com.example.data.PaymentMethodType.PAYPAL,
+                                                customPaymentId = res.transactionId,
+                                                commissionRate = commissionRate,
+                                                customDeliveryFee = deliveryFee,
+                                                onSuccess = { paymentStage = "SUCCESS" }
+                                            )
+                                        }
+                                        is com.example.data.UnifiedPaymentResult.Failure -> {
+                                            paymentErrorMessage = res.errorMessage
+                                            paymentStage = "FAILURE"
+                                        }
+                                    }
                                 }
-                                is StripePaymentResult.Failure -> {
-                                    stripeErrorMessage = billingRes.errorMessage
-                                    paymentStage = "FAILURE"
+                                com.example.data.PaymentMethodType.GOOGLE_PLAY_BILLING -> {
+                                    paymentStatusMessage = "Processing 1-Tap Google Play In-App Purchase..."
+                                    val res = viewModel.processGooglePlayBillingPayment(totalCost, meal.name, name)
+                                    when (res) {
+                                        is com.example.data.UnifiedPaymentResult.Success -> {
+                                            transactionReference = res.transactionId
+                                            viewModel.requestOrder(
+                                                meal = meal,
+                                                chefName = chefName,
+                                                quantity = quantity,
+                                                buyerName = name,
+                                                buyerAddress = address,
+                                                buyerPhone = phone,
+                                                paymentMethod = com.example.data.PaymentMethodType.GOOGLE_PLAY_BILLING,
+                                                customPaymentId = res.transactionId,
+                                                commissionRate = commissionRate,
+                                                customDeliveryFee = deliveryFee,
+                                                onSuccess = { paymentStage = "SUCCESS" }
+                                            )
+                                        }
+                                        is com.example.data.UnifiedPaymentResult.Failure -> {
+                                            paymentErrorMessage = res.errorMessage
+                                            paymentStage = "FAILURE"
+                                        }
+                                    }
+                                }
+                                com.example.data.PaymentMethodType.GOOGLE_PAY -> {
+                                    paymentStatusMessage = "Connecting with Google Pay..."
+                                    val res = viewModel.processGooglePayment(totalCost, name, meal.name)
+                                    when (res) {
+                                        is com.example.data.UnifiedPaymentResult.Success -> {
+                                            transactionReference = res.transactionId
+                                            viewModel.requestOrder(
+                                                meal = meal,
+                                                chefName = chefName,
+                                                quantity = quantity,
+                                                buyerName = name,
+                                                buyerAddress = address,
+                                                buyerPhone = phone,
+                                                paymentMethod = com.example.data.PaymentMethodType.GOOGLE_PAY,
+                                                customPaymentId = res.transactionId,
+                                                commissionRate = commissionRate,
+                                                customDeliveryFee = deliveryFee,
+                                                onSuccess = { paymentStage = "SUCCESS" }
+                                            )
+                                        }
+                                        is com.example.data.UnifiedPaymentResult.Failure -> {
+                                            paymentErrorMessage = res.errorMessage
+                                            paymentStage = "FAILURE"
+                                        }
+                                    }
+                                }
+                                com.example.data.PaymentMethodType.ONE_TAP_CASH -> {
+                                    paymentStatusMessage = "Locking in Cash on Delivery reservation..."
+                                    val res = viewModel.processCashPayment(totalCost, address)
+                                    when (res) {
+                                        is com.example.data.UnifiedPaymentResult.Success -> {
+                                            transactionReference = res.transactionId
+                                            viewModel.requestOrder(
+                                                meal = meal,
+                                                chefName = chefName,
+                                                quantity = quantity,
+                                                buyerName = name,
+                                                buyerAddress = address,
+                                                buyerPhone = phone,
+                                                paymentMethod = com.example.data.PaymentMethodType.ONE_TAP_CASH,
+                                                customPaymentId = res.transactionId,
+                                                commissionRate = commissionRate,
+                                                customDeliveryFee = deliveryFee,
+                                                onSuccess = { paymentStage = "SUCCESS" }
+                                            )
+                                        }
+                                        is com.example.data.UnifiedPaymentResult.Failure -> {
+                                            paymentErrorMessage = res.errorMessage
+                                            paymentStage = "FAILURE"
+                                        }
+                                    }
                                 }
                             }
                         }
                     },
-                    modifier = Modifier.testTag("submit_checkout_pay"),
+                    modifier = Modifier.fillMaxWidth().testTag("submit_checkout_pay"),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isLiveMode) MaterialTheme.colorScheme.primary else Color(0xFF2E7D32)
-                    )
+                        containerColor = when (selectedMethod) {
+                            com.example.data.PaymentMethodType.PAYPAL -> Color(0xFF0070BA)
+                            com.example.data.PaymentMethodType.GOOGLE_PLAY_BILLING -> Color(0xFF01875F)
+                            com.example.data.PaymentMethodType.GOOGLE_PAY -> Color(0xFF000000)
+                            com.example.data.PaymentMethodType.ONE_TAP_CASH -> Color(0xFF06C167)
+                        }
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Pay ${com.example.data.CurrencyHelper.formatPrice(totalCost)}")
+                    val label = when (selectedMethod) {
+                        com.example.data.PaymentMethodType.PAYPAL -> "🅿️ Pay with PayPal • ${com.example.data.CurrencyHelper.formatPrice(totalCost)}"
+                        com.example.data.PaymentMethodType.GOOGLE_PLAY_BILLING -> "⚡ Google Play 1-Tap • ${com.example.data.CurrencyHelper.formatPrice(totalCost)}"
+                        com.example.data.PaymentMethodType.GOOGLE_PAY -> "⚡ Google Pay • ${com.example.data.CurrencyHelper.formatPrice(totalCost)}"
+                        com.example.data.PaymentMethodType.ONE_TAP_CASH -> "💵 Cash on Delivery • ${com.example.data.CurrencyHelper.formatPrice(totalCost)}"
+                    }
+                    Text(label, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             } else if (paymentStage == "SUCCESS") {
                 Button(
                     onClick = {
                         onDismiss()
-                        Toast.makeText(context, "Stripe Charge finalized! Order is active.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Order is confirmed and active in tracking!", Toast.LENGTH_SHORT).show()
                     },
-                    modifier = Modifier.testTag("close_invoice_button"),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+                    modifier = Modifier.fillMaxWidth().testTag("close_invoice_button"),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF000000)),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Close Invoice & Track Order")
+                    Text("Track Order Live 🛵", fontWeight = FontWeight.Bold)
                 }
             }
         },
@@ -6398,7 +9064,7 @@ fun OrderCheckoutDialog(
                     onClick = onDismiss,
                     modifier = Modifier.testTag("cancel_checkout")
                 ) {
-                    Text("Cancel")
+                    Text("Cancel", color = Color.Gray)
                 }
             }
         }
@@ -6407,63 +9073,797 @@ fun OrderCheckoutDialog(
 
 @Composable
 fun GoLiveConfigScreen(viewModel: HomeChefViewModel) {
-    val isLiveByState by viewModel.isLiveMode.collectAsState()
-    val liveBackendUrl by viewModel.liveBackendUrl.collectAsState()
-    val stripePublishableKey by viewModel.stripePublishableKey.collectAsState()
-    val googleMapsApiKey by viewModel.googleMapsApiKey.collectAsState()
-    val syncStatus by viewModel.syncStatus.collectAsState()
-
-    var tempUrl by remember(liveBackendUrl) { mutableStateOf(liveBackendUrl) }
-    var tempStripe by remember(stripePublishableKey) { mutableStateOf(stripePublishableKey) }
-    var tempMapKey by remember(googleMapsApiKey) { mutableStateOf(googleMapsApiKey) }
-
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    var showPrivacyDialog by remember { mutableStateOf(false) }
+    var notificationsEnabled by remember { mutableStateOf(true) }
+    var locationTrackingEnabled by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .background(Color(0xFFFAF6F0))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Hero Card
+        // Editorial Header
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF1B1612),
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("profile_citch_logo")
+                    ) {
+                        Image(
+                            painter = painterResource(id = com.example.R.drawable.img_citch_logo_1789242928296),
+                            contentDescription = "Citch Logo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, Color(0xFFECE6DD))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("🌿", fontSize = 12.sp)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Citch Member",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF1B1612)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "Your profile",
+                fontSize = 30.sp,
+                fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1B1612),
+                lineHeight = 34.sp
+            )
+            Text(
+                text = "& host kitchen.",
+                fontSize = 30.sp,
+                fontFamily = FontFamily.Serif,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFD8582B),
+                lineHeight = 34.sp
+            )
+        }
+
+        // User Profile Header Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.CloudUpload,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Production Go-Live Dashboard",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFFD8582B),
+                        modifier = Modifier.size(54.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                "A",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 22.sp,
+                                color = Color.White
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            "Alex Morgan",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color(0xFF1B1612)
+                        )
+                        Text(
+                            "olamide.hanson@gmail.com",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF7A7067)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Surface(
+                                color = Color(0xFFE2F4E6),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    "🌿 Verified Foodie ⭐",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E432A),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                            Surface(
+                                color = Color(0xFFFAF6F0),
+                                shape = RoundedCornerShape(6.dp),
+                                border = BorderStroke(1.dp, Color(0xFFECE6DD))
+                            ) {
+                                val userLoc by viewModel.currentLocationName.collectAsState()
+                                Text(
+                                    "📍 $userLoc",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF7A7067),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Switch from Simulated Sandbox mode to real production API endpoints, Stripe checkout integrations, and launch services for Citch live customers.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                )
+
+                HorizontalDivider(color = Color(0xFFECE6DD))
+
+                // Action to open AI Culinary Hub
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFAF6F0),
+                    border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.navigateTo(Screen.AICulinaryHub) }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFFD8582B), modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text("AI Kitchen Assistant", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1B1612))
+                                Text("Diet advice, recipe pairings & cooking advice", fontSize = 10.sp, color = Color(0xFF7A7067))
+                            }
+                        }
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFF7A7067), modifier = Modifier.size(18.dp))
+                    }
+                }
             }
         }
 
-        // Live Toggle Row
+        // App Preferences
+        Text(
+            "App Preferences",
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleSmall,
+            color = Color(0xFF1B1612)
+        )
+
         Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            tonalElevation = 2.dp,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            shape = RoundedCornerShape(20.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Notifications, contentDescription = null, tint = Color(0xFFD8582B), modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Order Status Notifications", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF1B1612))
+                            Text("Real-time kitchen updates", fontSize = 11.sp, color = Color(0xFF7A7067))
+                        }
+                    }
+                    Switch(
+                        checked = notificationsEnabled,
+                        onCheckedChange = { notificationsEnabled = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFFD8582B)
+                        )
+                    )
+                }
+
+                HorizontalDivider(color = Color(0xFFECE6DD))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFFD8582B), modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Live Location Accuracy", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF1B1612))
+                            Text("Discover closest home kitchens", fontSize = 11.sp, color = Color(0xFF7A7067))
+                        }
+                    }
+                    Switch(
+                        checked = locationTrackingEnabled,
+                        onCheckedChange = { locationTrackingEnabled = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFFD8582B)
+                        )
+                    )
+                }
+            }
+        }
+
+        // Payments & Payout Info
+        Text(
+            "Payment & Chef Payout Hub",
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleSmall,
+            color = Color(0xFF1B1612)
+        )
+
+        val chefs by viewModel.chefs.collectAsState()
+        val allOrders by viewModel.orders.collectAsState()
+        val allPayouts by viewModel.allPayouts.collectAsState()
+        val isLiveMode by viewModel.isLiveMode.collectAsState()
+        val coroutineScope = rememberCoroutineScope()
+
+        val totalPlatformVolume = remember(allOrders) { allOrders.sumOf { it.totalAmount } }
+        val totalPlatformCommissions = remember(allOrders) { allOrders.sumOf { it.platformFee } }
+        val totalNetChefEarnings = remember(allOrders) { allOrders.sumOf { it.chefEarnings } }
+        val totalDisbursedAll = remember(allPayouts) { allPayouts.sumOf { it.amount } }
+
+        var selectedChefForPayout by remember { mutableStateOf<ChefEntity?>(null) }
+        var payoutDialogAmount by remember { mutableStateOf("50.00") }
+        var isDisbursing by remember { mutableStateOf(false) }
+
+        // Main PayPal Gateway Card (Forest Green Citch Style)
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E432A)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.AccountBalanceWallet,
+                            contentDescription = null,
+                            tint = Color(0xFF88D49E),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "PayPal Engine & Settlement",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 15.sp
+                        )
+                    }
+                    Surface(
+                        color = Color(0xFF2E6B43),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            "Active",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    "Real customer payments through PayPal Express Checkout with direct automated disbursements to chefs' PayPal accounts.",
+                    fontSize = 12.sp,
+                    color = Color(0xFFD8F3DC),
+                    lineHeight = 16.sp
+                )
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
+
+                // Environment & Mode Switcher
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("PayPal Environment", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.sp)
+                        Text(
+                            if (isLiveMode) "LIVE PRODUCTION (Real Billing)" else "SANDBOX (Safe Verification)",
+                            color = if (isLiveMode) Color(0xFF88D49E) else Color(0xFFFFD166),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            val newMode = !isLiveMode
+                            viewModel.setLiveMode(newMode)
+                            viewModel.setPayPalEnvironment(if (newMode) "LIVE" else "SANDBOX")
+                            Toast.makeText(context, if (newMode) "Switched to PayPal LIVE mode" else "Switched to PayPal SANDBOX mode", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isLiveMode) Color(0xFFD8582B) else Color(0xFF2E6B43)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(if (isLiveMode) "Live Mode" else "Sandbox", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Platform Financials Summary
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Gross GMV", color = Color(0xFFB7E4C7), fontSize = 11.sp)
+                        Text(
+                            com.example.data.CurrencyHelper.formatPrice(totalPlatformVolume),
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                    }
+                    Column {
+                        Text("Citch Take-Rate", color = Color(0xFFFFD166), fontSize = 11.sp)
+                        Text(
+                            com.example.data.CurrencyHelper.formatPrice(totalPlatformCommissions),
+                            color = Color(0xFFFFD166),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                    }
+                    Column {
+                        Text("Net Chef Payouts", color = Color(0xFFB7E4C7), fontSize = 11.sp)
+                        Text(
+                            com.example.data.CurrencyHelper.formatPrice(totalDisbursedAll),
+                            color = Color(0xFF88D49E),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        // 4 Monetization Engines Card
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
+            border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+            modifier = Modifier.fillMaxWidth().testTag("monetization_engine_hub")
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFD97706),
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text("Citch Monetization Revenue Engine", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF92400E))
+                            Text("4 Active Multi-Stream Revenue Channels", fontSize = 11.sp, color = Color(0xFFB45309))
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFFFDE68A))
+
+                // Engine 1: Marketplace Commission (Take Rate)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("1. Marketplace Commission (Take Rate)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1B1612))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(color = Color(0xFFE0F2FE), shape = RoundedCornerShape(4.dp)) {
+                                Text("15% / 8% Pro", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0369A1), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                            }
+                        }
+                        Text("Retained automatically on every order checkout. Credited: ${com.example.data.CurrencyHelper.formatPrice(totalPlatformCommissions)}.", fontSize = 11.sp, color = Color(0xFF7A7067))
+                    }
+                }
+
+                // Engine 2: Citch Club Diner Subscriptions
+                val isCitchClubMember by viewModel.isCitchClubMember.collectAsState()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("2. Citch Club Diner Membership", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1B1612))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(color = if (isCitchClubMember) Color(0xFFDCFCE7) else Color(0xFFF3F4F6), shape = RoundedCornerShape(4.dp)) {
+                                Text(if (isCitchClubMember) "ACTIVE" else "$9.99/mo", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (isCitchClubMember) Color(0xFF15803D) else Color(0xFF4B5563), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                            }
+                        }
+                        Text("Diners pay $9.99/month for 10% food discount and Free Delivery over $15.", fontSize = 11.sp, color = Color(0xFF7A7067))
+                    }
+                    Switch(
+                        checked = isCitchClubMember,
+                        onCheckedChange = { viewModel.toggleCitchClubMembership(it) }
+                    )
+                }
+
+                // Engine 3: Pro Kitchen Subscription ($29.99/mo)
+                val proKitchensCount = remember(chefs) { chefs.count { it.isProTier } }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("3. Chef Pro Kitchen Tier ($29.99/mo)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1B1612))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(color = Color(0xFFEDE9FE), shape = RoundedCornerShape(4.dp)) {
+                                Text("$proKitchensCount Active", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6D28D9), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                            }
+                        }
+                        Text("Chefs pay $29.99/month for reduced take-rate (8% vs 15%) and enhanced reach.", fontSize = 11.sp, color = Color(0xFF7A7067))
+                    }
+                }
+
+                // Engine 4: Sponsored Top Placement ($19.00/wk)
+                val sponsoredKitchensCount = remember(chefs) { chefs.count { it.isSponsored } }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("4. Top Placement & Map Sponsorship ($19/wk)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1B1612))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(color = Color(0xFFFEF3C7), shape = RoundedCornerShape(4.dp)) {
+                                Text("$sponsoredKitchensCount Featured", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                            }
+                        }
+                        Text("Featured shelf placement & prominent Golden Star markers on Leaflet maps.", fontSize = 11.sp, color = Color(0xFF7A7067))
+                    }
+                }
+            }
+        }
+
+        // Chefs Payout List
+        Text(
+            "Kitchen Hosts, Tiers & Accounts",
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleSmall,
+            color = Color(0xFF1B1612)
+        )
+
+        chefs.forEach { chef ->
+            val chefOrders = remember(allOrders, chef.id) { allOrders.filter { it.chefId == chef.id } }
+            val chefSales = remember(chefOrders) { chefOrders.sumOf { it.totalAmount } }
+            val chefFees = remember(chefOrders) { chefOrders.sumOf { it.platformFee } }
+            val chefNetEarnings = remember(chefOrders) { chefOrders.sumOf { it.chefEarnings } }
+            val chefPayoutsList = remember(allPayouts, chef.id) { allPayouts.filter { it.chefId == chef.id } }
+            val chefDisbursed = remember(chefPayoutsList) { chefPayoutsList.sumOf { it.amount } }
+            val chefBalance = remember(chefNetEarnings, chefDisbursed) { (chefNetEarnings - chefDisbursed).coerceAtLeast(0.0) }
+
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+                modifier = Modifier.fillMaxWidth().testTag("chef_payout_card_${chef.id}")
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFFD8582B).copy(alpha = 0.12f),
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        chef.name.take(1),
+                                        color = Color(0xFFD8582B),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(chef.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1B1612))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    if (chef.isProTier) {
+                                        Surface(color = Color(0xFFDCFCE7), shape = RoundedCornerShape(4.dp)) {
+                                            Text("PRO (8%)", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                        }
+                                    } else {
+                                        Surface(color = Color(0xFFF3F4F6), shape = RoundedCornerShape(4.dp)) {
+                                            Text("STD (15%)", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B5563), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                        }
+                                    }
+                                }
+                                Text(
+                                    chef.paypalEmail.ifBlank { "No PayPal linked" },
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF7A7067),
+                                    fontWeight = FontWeight.Normal
+                                )
+                            }
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                "Net Balance: ${com.example.data.CurrencyHelper.formatPrice(chefBalance)}",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF1E432A)
+                            )
+                            Text(
+                                "Gross Sales: ${com.example.data.CurrencyHelper.formatPrice(chefSales)}",
+                                fontSize = 10.sp,
+                                color = Color(0xFF7A7067)
+                            )
+                            Text(
+                                "Commission: -${com.example.data.CurrencyHelper.formatPrice(chefFees)}",
+                                fontSize = 10.sp,
+                                color = Color(0xFFD97706)
+                            )
+                        }
+                    }
+
+                    // Tiers and Sponsorship Status Tags
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (chef.isChefOfTheWeek) {
+                            Surface(color = Color(0xFFFEF3C7), shape = RoundedCornerShape(4.dp)) {
+                                Text("🏆 Chef of Week", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            }
+                        }
+                        if (chef.isSponsored) {
+                            Surface(color = Color(0xFFDBEAFE), shape = RoundedCornerShape(4.dp)) {
+                                Text("⭐ Top Placement Active", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1D4ED8), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            }
+                        }
+                    }
+
+                    // Interactive Monetization Controls & Payout
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            // Pro Tier Toggle
+                            OutlinedButton(
+                                onClick = {
+                                    if (chef.isProTier) {
+                                        viewModel.downgradeChefProTier(chef.id)
+                                    } else {
+                                        viewModel.upgradeChefToProTier(chef.id)
+                                    }
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Text(if (chef.isProTier) "Downgrade" else "Upgrade Pro (8%)", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            // Sponsorship Toggle
+                            OutlinedButton(
+                                onClick = {
+                                    if (chef.isSponsored) {
+                                        viewModel.endChefSponsorship(chef.id)
+                                    } else {
+                                        viewModel.sponsorChefTopPlacement(chef.id, 1)
+                                    }
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Text(if (chef.isSponsored) "End Boost" else "⭐ Boost ($19/wk)", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                selectedChefForPayout = chef
+                                payoutDialogAmount = if (chefBalance > 0.0) String.format(Locale.US, "%.2f", chefBalance) else "50.00"
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD8582B)),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.height(34.dp)
+                        ) {
+                            Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Payout", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Secondary Gateways (Google Play)
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color(0xFF01875F), modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text("Google Play Billing & Google Pay", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1B1612))
+                        Text("Available as checkout options alongside PayPal & Cash", fontSize = 11.sp, color = Color(0xFF7A7067))
+                    }
+                }
+            }
+        }
+
+        // Selected Chef Payout Dialog
+        if (selectedChefForPayout != null) {
+            val chefToPay = selectedChefForPayout!!
+            AlertDialog(
+                onDismissRequest = { if (!isDisbursing) selectedChefForPayout = null },
+                containerColor = Color.White,
+                shape = RoundedCornerShape(20.dp),
+                icon = {
+                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color(0xFFD8582B), modifier = Modifier.size(32.dp))
+                },
+                title = {
+                    Text("Disburse to ${chefToPay.name}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1B1612))
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Direct payout to recipient PayPal wallet:", fontSize = 12.sp, color = Color(0xFF7A7067))
+                        Surface(
+                            color = Color(0xFFFAF6F0),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color(0xFFECE6DD)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFFD8582B), modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(chefToPay.paypalEmail.ifBlank { "chef@paypal.com" }, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1B1612))
+                            }
+                        }
+                        OutlinedTextField(
+                            value = payoutDialogAmount,
+                            onValueChange = { payoutDialogAmount = it },
+                            label = { Text("Amount ($)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFFD8582B),
+                                unfocusedBorderColor = Color(0xFFECE6DD)
+                            )
+                        )
+                        if (isDisbursing) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp).align(Alignment.CenterHorizontally), color = Color(0xFFD8582B))
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val amt = payoutDialogAmount.toDoubleOrNull() ?: 50.0
+                            isDisbursing = true
+                            coroutineScope.launch {
+                                val res = viewModel.executeChefPayPalPayout(
+                                    chefId = chefToPay.id,
+                                    chefName = chefToPay.name,
+                                    amount = amt,
+                                    paypalEmail = chefToPay.paypalEmail.ifBlank { "chef@paypal.com" },
+                                    note = "Host Kitchen Payout"
+                                )
+                                isDisbursing = false
+                                selectedChefForPayout = null
+                                when (res) {
+                                    is com.example.data.UnifiedPaymentResult.Success -> {
+                                        Toast.makeText(context, "PayPal Payout Completed! Batch: ${res.transactionId}", Toast.LENGTH_LONG).show()
+                                    }
+                                    is com.example.data.UnifiedPaymentResult.Failure -> {
+                                        Toast.makeText(context, "Error: ${res.errorMessage}", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isDisbursing,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD8582B)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Execute PayPal Payout", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { selectedChefForPayout = null }, enabled = !isDisbursing) {
+                        Text("Cancel", color = Color(0xFF7A7067))
+                    }
+                }
+            )
+        }
+
+        // Privacy & Legal
+        Text(
+            "Legal & Compliance",
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleSmall,
+            color = Color(0xFF1B1612)
+        )
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showPrivacyDialog = true },
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color(0xFFECE6DD))
         ) {
             Row(
                 modifier = Modifier
@@ -6472,487 +9872,21 @@ fun GoLiveConfigScreen(viewModel: HomeChefViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Live Production Mode",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        if (isLiveByState) "Serving real requests via custom backend API" else "Operating offline database & localized sandboxes",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = isLiveByState,
-                    onCheckedChange = {
-                        viewModel.toggleLiveMode(it)
-                        val msg = if (it) "Enabled Live Production routing mode!" else "Reverted to Local Simulated Sandbox mode."
-                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                    }
-                )
-            }
-        }
-
-        // Configuration Inputs
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    "Production Integration Targets",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                OutlinedTextField(
-                    value = tempUrl,
-                    onValueChange = { tempUrl = it },
-                    label = { Text("Base API Endpoint URL") },
-                    placeholder = { Text("https://your-api.com/v1") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Quick Preset Autofills
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ElevatedButton(
-                        onClick = {
-                            tempUrl = "http://localhost:3000"
-                            Toast.makeText(context, "Filled Cloud Localhost Preset!", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
-                    ) {
-                        Text("Cloud Localhost (3000)", style = MaterialTheme.typography.labelSmall)
-                    }
-
-                    ElevatedButton(
-                        onClick = {
-                            tempUrl = "http://10.0.2.2:3000"
-                            Toast.makeText(context, "Filled Emulator Bridge Preset!", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
-                    ) {
-                        Text("Emulator Bridge (10.0.2.2)", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-
-                OutlinedTextField(
-                    value = tempStripe,
-                    onValueChange = { tempStripe = it },
-                    label = { Text("Stripe Publishable Token Key") },
-                    placeholder = { Text("pk_live_...") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Google Maps SDK API Key Input
-                OutlinedTextField(
-                    value = tempMapKey,
-                    onValueChange = { tempMapKey = it },
-                    label = { Text("Google Maps SDK API Key") },
-                    placeholder = { Text("AIzaSy...") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Firebase Service Status & Management Card
-                val firebaseUser by viewModel.firebaseUser.collectAsState()
-                val firebaseFcmToken by viewModel.firebaseFcmToken.collectAsState()
-                val firebaseSyncStatus by viewModel.firebaseSyncStatus.collectAsState()
-
-                var tempFirebaseApiKey by remember { mutableStateOf("") }
-                var tempFirebaseProjectId by remember { mutableStateOf("citch-591f9") }
-                var firebaseFeedbackMsg by remember { mutableStateOf<String?>(null) }
-
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Firebase Live Integration Engine", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
-                        }
-
-                        // Status Badge
-                        Surface(
-                            color = if (firebaseSyncStatus.contains("Connected")) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = "Target Project: $firebaseSyncStatus",
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (firebaseSyncStatus.contains("Connected")) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-
-                        // Firebase Console Setup Guide Box
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                        ) {
-                            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("💡 Firebase Console Configuration Steps (citch-591f9):", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
-                                Text("1. Go to console.firebase.google.com/project/citch-591f9/settings/general", fontSize = 11.sp)
-                                Text("2. Copy the 'Web API Key' (starts with AIzaSy...) and paste it in the box below.", fontSize = 11.sp)
-                                Text("3. Go to Authentication -> Sign-in method -> Click 'Anonymous' -> Enable.", fontSize = 11.sp)
-                            }
-                        }
-
-                        // Firebase Web API Key Input Box
-                        OutlinedTextField(
-                            value = tempFirebaseApiKey,
-                            onValueChange = { tempFirebaseApiKey = it },
-                            label = { Text("Firebase Web API Key (for citch-591f9)") },
-                            placeholder = { Text("AIzaSy...") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = tempFirebaseProjectId,
-                                onValueChange = { tempFirebaseProjectId = it },
-                                label = { Text("Firebase Project ID") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Button(
-                                onClick = {
-                                    com.example.data.CitchFirebaseService.reinitializeWithCustomConfig(
-                                        context, tempFirebaseApiKey, tempFirebaseProjectId
-                                    ) { success, msg ->
-                                        firebaseFeedbackMsg = msg
-                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                                    }
-                                },
-                                modifier = Modifier.padding(top = 8.dp)
-                            ) {
-                                Text("Connect Key")
-                            }
-                        }
-
-                        if (firebaseFeedbackMsg != null) {
-                            Text(
-                                text = firebaseFeedbackMsg ?: "",
-                                fontSize = 11.sp,
-                                color = if (firebaseFeedbackMsg?.contains("Successfully") == true) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                        // 1. Firebase Authentication
-                        Text("1. Firebase Auth Engine Test", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                        if (firebaseUser != null) {
-                            Text("Active Session User UID: ${firebaseUser?.uid}", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
-                            OutlinedButton(
-                                onClick = { viewModel.firebaseSignOut() },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Sign Out Firebase User")
-                            }
-                        } else {
-                            Text("User Status: Unauthenticated / Local Session", fontSize = 11.sp, color = Color.Gray)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(
-                                    onClick = {
-                                        viewModel.firebaseAnonymousSignIn { success, msg ->
-                                            firebaseFeedbackMsg = msg
-                                            Toast.makeText(context, msg ?: if (success) "Signed in anonymously!" else "Failed", Toast.LENGTH_LONG).show()
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text("Test Anon Login", fontSize = 11.sp)
-                                }
-                            }
-                        }
-
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                        // 2. FCM Push Notifications (Order Status & Promotional Deals)
-                        Text("2. FCM Cloud Messaging Engine", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            text = if (firebaseFcmToken != null) "FCM Token: ${firebaseFcmToken?.take(28)}..." else "FCM Token: Registering with Firebase Messaging...",
-                            fontSize = 11.sp,
-                            color = Color.Gray
-                        )
-
-                        val subscribedTopics by viewModel.subscribedTopics.collectAsState()
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("Subscribed Topics:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            subscribedTopics.forEach { topic ->
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = CircleShape
-                                ) {
-                                    Text(
-                                        text = "• $topic",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            Button(
-                                onClick = {
-                                    com.example.data.CitchFirebaseService.sendOrderStatusPushNotification(
-                                        orderId = 9821,
-                                        status = "Out for Delivery",
-                                        title = "Courier Picked Up Order #9821 🚴",
-                                        message = "Your Sisi Jemimah Ayamase Ofada Stew is hot and en route to your location!"
-                                    )
-                                    Toast.makeText(context, "FCM Order Status Push Alert Dispatched!", Toast.LENGTH_SHORT).show()
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Order Status Push", fontSize = 11.sp)
-                            }
-
-                            Button(
-                                onClick = {
-                                    viewModel.sendPromotionalFcmPush(
-                                        title = "Weekend Buka Feast Special 🏷️",
-                                        message = "Get 20% off authentic Nigerian Buka Stew & Asaro Yam Porridge today!",
-                                        promoCode = "CITCH20"
-                                    )
-                                    Toast.makeText(context, "FCM Promotional Push Alert Dispatched!", Toast.LENGTH_SHORT).show()
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100)),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Icon(Icons.Default.LocalOffer, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Promo Deal Push", fontSize = 11.sp)
-                            }
-                        }
-
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                        // 3. Firestore Live Sync
-                        Text("3. Firestore Database Cloud Mirroring", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            "Every new food order or status progression automatically mirrors to Firestore `orders` document collection in real-time.",
-                            fontSize = 11.sp,
-                            color = Color.Gray
-                        )
-                    }
-                }
-
-                // Dynamic Sync Status HUD
-                AnimatedVisibility(visible = syncStatus != null) {
-                    val status = syncStatus ?: ""
-                    val isError = status.startsWith("Sync Failed")
-                    val isSuccess = status.startsWith("Sync Succeeded")
-                    
-                    val bgColor = when {
-                        isSuccess -> Color(0xFFE8F5E9)
-                        isError -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
-                        else -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-                    }
-                    val contentColor = when {
-                        isSuccess -> Color(0xFF2E7D32)
-                        isError -> MaterialTheme.colorScheme.onErrorContainer
-                        else -> MaterialTheme.colorScheme.onSecondaryContainer
-                    }
-                    val icon = when {
-                        isSuccess -> Icons.Default.Check
-                        isError -> Icons.Default.Warning
-                        else -> Icons.Default.Sync
-                    }
-
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = bgColor,
-                        contentColor = contentColor,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            if (status == "Syncing...") {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp).padding(top = 2.dp),
-                                    strokeWidth = 2.dp,
-                                    color = contentColor
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = contentColor
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = status,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                if (isError) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "How to fix:\n1. Ensure the Node.js backend is active (it's running in your workspace container!).\n2. In the AI Studio streaming emulator, use 'http://10.0.2.2:3000' as the endpoint.\n3. Make sure 'usesCleartextTraffic' is enabled in the Manifest.",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = contentColor.copy(alpha = 0.8f),
-                                        lineHeight = 14.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(
-                        onClick = {
-                            viewModel.updateLiveBackendUrl(tempUrl)
-                            viewModel.updateStripeKey(tempStripe)
-                            viewModel.updateGoogleMapsKey(tempMapKey)
-                            Toast.makeText(context, "Attempting database synchronization...", Toast.LENGTH_SHORT).show()
-                            viewModel.syncDataFromBackend()
-                        },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
-                    ) {
-                        Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Test Connection & Sync")
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Button(
-                        onClick = {
-                            viewModel.updateLiveBackendUrl(tempUrl)
-                            viewModel.updateStripeKey(tempStripe)
-                            viewModel.updateGoogleMapsKey(tempMapKey)
-                            Toast.makeText(context, "Production configurations verified & synced!", Toast.LENGTH_SHORT).show()
-                        }
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Apply Keys")
-                    }
-                }
-            }
-        }
-
-        // Interactive Launch Guides & Step checklist (Expandable)
-        Text(
-            "Complete Go-Live Checklist",
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.padding(top = 8.dp)
-        )
-
-        StepItem(
-            stepNumber = "1",
-            title = "Launch Production Web Server & Room Sync",
-            description = "1. Replace the simulated Room initial datasets with live HTTP Retrofit/Ktor networking. \n2. Host a Node.js Express/Spring Boot server securely on platform clouds. \n3. Point 'Base API Endpoint URL' above to connect dynamic chef search streams natively."
-        )
-
-        StepItem(
-            stepNumber = "2",
-            title = "Secure Live Stripe Merchants",
-            description = "1. Replace 'OrderCheckoutDialog' with real Stripe Mobile SDK library targets. \n2. Configure a modern Customer/PaymentIntent session token server-side. \n3. Turn on Stripe webhooks to trigger notifications instantly to customers when orders are confirmed."
-        )
-
-        StepItem(
-            stepNumber = "3",
-            title = "Setup Google Maps API Keys",
-            description = "1. Generate an API Key under the Google Cloud Console with Maps SDK enabled. \n2. Insert the key in AndroidManifest.xml within <meta-data android:name=\"com.google.android.geo.API_KEY\" ... /> tags. \n3. The MapSearchScreen's WebView will automatically load real interactive locations securely."
-        )
-
-        StepItem(
-            stepNumber = "4",
-            title = "Deploy on Google Play Console",
-            description = "1. Go to build.gradle.kts and update your unique Application ID. \n2. Sign your production release package with the Upload Keystore tool. \n3. Create a store listing under developer.android.com/distribute to publish Citch completely."
-        )
-
-        // Privacy Policy Compliance Section
-        var showPrivacyDialog by remember { mutableStateOf(false) }
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
-            ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.VerifiedUser,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Legal & Privacy Compliance",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
+                    Icon(Icons.Default.Security, contentDescription = null, tint = Color(0xFF1E432A), modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Privacy Policy & Terms", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1B1612))
+                        Text("Google Play standard data protection policy", fontSize = 11.sp, color = Color(0xFF7A7067))
+                    }
                 }
-                Text(
-                    "Google Play Console requires a clear, accessible Privacy Policy both inside the application and on your store listing page. Use this pre-written, compliant policy designed specifically for Citch.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Button(
-                    onClick = { showPrivacyDialog = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                    modifier = Modifier.fillMaxWidth().testTag("view_privacy_policy_btn")
-                ) {
-                    Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("View In-App Privacy Policy")
-                }
+                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFF7A7067))
             }
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Privacy Policy Dialog
         if (showPrivacyDialog) {
             Dialog(onDismissRequest = { showPrivacyDialog = false }) {
                 Surface(
@@ -6975,7 +9909,7 @@ fun GoLiveConfigScreen(viewModel: HomeChefViewModel) {
                                 Icon(
                                     Icons.Default.Security,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = Color.Black,
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -6990,7 +9924,7 @@ fun GoLiveConfigScreen(viewModel: HomeChefViewModel) {
                             }
                         }
 
-                        Divider(modifier = Modifier.padding(vertical = 12.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                         LazyColumn(
                             modifier = Modifier.weight(1f),
@@ -6998,7 +9932,7 @@ fun GoLiveConfigScreen(viewModel: HomeChefViewModel) {
                         ) {
                             item {
                                 Text(
-                                    text = "Last Updated: July 20, 2026",
+                                    text = "Last Updated: August 2026",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontStyle = FontStyle.Italic,
                                     color = Color.Gray
@@ -7006,72 +9940,56 @@ fun GoLiveConfigScreen(viewModel: HomeChefViewModel) {
                             }
                             item {
                                 Text(
-                                    text = "Welcome to Citch. We are committed to protecting your personal information and your right to privacy. This policy describes how we collect, use, and share your details when utilizing the app.",
+                                    text = "Welcome to Citch. We are committed to protecting your personal information and your right to privacy. This policy describes how we collect, use, and safeguard your details when using the app.",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
                             item {
-                                Text("1. Information We Collect", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                                Text("1. Information We Collect", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color.Black)
                                 Text(
-                                    text = "• Profile Credentials: Name, email address, physical delivery addresses, and phone numbers.\n" +
-                                           "• Payment Data: Transactions are securely managed via third-party providers (Stripe). No card credentials are ever stored on Citch servers.\n" +
-                                           "• Device Location: Fine/coarse GPS coordinate streams are utilized to search local home kitchens and simulate real-time tracking.\n" +
-                                           "• SQLite Room Storage: Food carts, orders, and custom assistant preferences are saved locally on your device for fast offline loading.",
+                                    text = "• Profile Credentials: Name, email address, and delivery coordinates.\n" +
+                                           "• Payments: Transactions are processed securely via Google Play / authorized merchant gateways. No credit card information is stored locally.\n" +
+                                           "• Device Location: Fine/coarse GPS coordinate streams are utilized to search local home kitchens and calculate delivery distances in real time.\n" +
+                                           "• Local Room Storage: Food carts, orders, and custom assistant preferences are saved locally on your device for fast offline loading.",
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.padding(start = 4.dp, top = 4.dp)
                                 )
                             }
                             item {
-                                Text("2. How We Use Information", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                                Text("2. How We Use Information", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color.Black)
                                 Text(
-                                    text = "• Process payment checkout via secure Stripe SDK flows.\n" +
+                                    text = "• Facilitate orders between verified home food artisans and food lovers.\n" +
                                            "• Map coordinates and calculate delivery distances in real time.\n" +
-                                           "• Render customized culinary instructions via secure server-side Gemini API sandboxes.\n" +
-                                           "• Synchronize transaction statistics and local data profiles.",
+                                           "• Render customized culinary recipes via secure server-side Gemini models.",
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.padding(start = 4.dp, top = 4.dp)
                                 )
                             }
                             item {
-                                Text("3. Sharing & Disclosures", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                                Text("3. Contact Information", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = Color.Black)
                                 Text(
-                                    text = "We share payment tokens securely with Stripe, and query geographic information with Google Maps services. Delivery locations are passed only to home chefs preparing your active orders.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                                )
-                            }
-                            item {
-                                Text("4. Security", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-                                Text(
-                                    text = "All communications utilize secure TLS/SSL protocols. Data stored locally on Room enjoys standard Android sandbox protection features.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                                )
-                            }
-                            item {
-                                Text("5. Contact Info", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-                                Text(
-                                    text = "For privacy requests, email: olamide.hanson@gmail.com",
+                                    text = "For privacy requests, inquiries, or account deletion: olamide.hanson@gmail.com",
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.padding(start = 4.dp, top = 4.dp)
                                 )
                             }
                         }
 
-                        Divider(modifier = Modifier.padding(vertical = 12.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                         Button(
                             onClick = { showPrivacyDialog = false },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Acknowledge & Close")
+                            Text("Acknowledge & Close", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
         }
 
-        // Bottom Spacer to prevent overlapping by Bottom Navigation Bar
         Spacer(modifier = Modifier.height(140.dp))
     }
 }

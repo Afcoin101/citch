@@ -1,0 +1,60 @@
+node:internal/modules/cjs/loader:1433
+  throw err;
+  ^
+
+Error: Cannot find module 'express'
+Require stack:
+- /app/applet/backend/server.js
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+    at Function._load (node:internal/modules/cjs/loader:1216:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Module.require (node:internal/modules/cjs/loader:1527:12)
+    at require (node:internal/modules/helpers:147:16)
+    at Object.<anonymous> (/app/applet/backend/server.js:9:17)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+    at Object..js (node:internal/modules/cjs/loader:1913:10) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/app/applet/backend/server.js' ]
+}
+
+Node.js v22.23.2
+✓ Stripe API initialized securely with production credentials.
+============================================================
+🚀 DKitchen Backend API listening on http://localhost:3000
+🎯 Sync with Android Live Mode by setting API Base URL to: http://<YOUR_IP>:3000
+============================================================
+✓ Stripe API initialized securely with production credentials.
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:3000
+    at Server.setupListenHandle [as _listen2] (node:net:1941:16)
+    at listenInCluster (node:net:1998:12)
+    at node:net:2207:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1977:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 3000
+}
+
+Node.js v22.23.2
+✓ Stripe API initialized securely with production credentials.
+============================================================
+🚀 DKitchen Backend API listening on http://localhost:3000
+🎯 Sync with Android Live Mode by setting API Base URL to: http://<YOUR_IP>:3000
+============================================================
+[PayPal Checkout] Creating order. Amount: $25.50, Buyer: Anonymous, Dish: Elena Lasagna
+[PayPal Simulation] Generated order ID: PAYID-MNNYDKH9046
+[PayPal Capture] Capturing order ID: PAYID-MNNYDKH9046 for Chef ID: 1
+[PayPal Simulation] Payment verified and captured for Order PAYID-MNNYDKH9046
+[PayPal Payout] Dispatching $50.00 to Chef Elena Rostova (elena.rostova@italianclassics.org)
+[PayPal Payout Direct] Batch completed: PAYOUT-BATCH-454796-C4H6
+[API] Updated Chef Chef Elena Rostova PayPal email to: elena.chef.official@paypal.com

@@ -12,37 +12,69 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = NeonCoralPrimary,
-    secondary = NeonEmeraldSec,
-    tertiary = NeonAmberTert,
-    background = ObsidianBg,
-    surface = CharcoalSurface,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onBackground = SoftIvoryText,
-    onSurface = SoftIvoryText,
-    surfaceVariant = DarkBorder,
-    onSurfaceVariant = MutedChocText
+    primary = CitchDarkCoral,
+    onPrimary = Color(0xFF4A1000),
+    primaryContainer = Color(0xFF701E06),
+    onPrimaryContainer = Color(0xFFFFDBCF),
+    
+    secondary = CitchDarkTeal,
+    onSecondary = Color(0xFF003730),
+    secondaryContainer = Color(0xFF005047),
+    onSecondaryContainer = Color(0xFF86F8E8),
+    
+    tertiary = CitchDarkAmber,
+    onTertiary = Color(0xFF442D00),
+    tertiaryContainer = Color(0xFF624300),
+    onTertiaryContainer = Color(0xFFFFDF9E),
+    
+    background = CitchDarkBg,
+    onBackground = CitchDarkText,
+    
+    surface = CitchDarkSurface,
+    onSurface = CitchDarkText,
+    surfaceVariant = CitchDarkSurfaceVariant,
+    onSurfaceVariant = CitchDarkMutedText,
+    
+    outline = CitchDarkBorder,
+    outlineVariant = Color(0xFF352B26),
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = VibrantPrimaryOrange,
-    secondary = VibrantSecondaryMint,
-    tertiary = VibrantTertiaryAmber,
-    background = AlabasterCleanBg,
-    surface = Color.White,
+    primary = CitchCoralPrimary,
     onPrimary = Color.White,
+    primaryContainer = CitchCoralContainer,
+    onPrimaryContainer = CitchCoralContainerOn,
+    
+    secondary = CitchForestGreen,
     onSecondary = Color.White,
-    onBackground = DeepCharcoalText,
-    onSurface = DeepCharcoalText,
-    surfaceVariant = WarmSandVariant,
-    onSurfaceVariant = CozyChocText
+    secondaryContainer = CitchMintBadge,
+    onSecondaryContainer = CitchMintBadgeText,
+    
+    tertiary = CitchGold,
+    onTertiary = Color(0xFF332000),
+    tertiaryContainer = Color(0xFFFFF3D6),
+    onTertiaryContainer = Color(0xFF4D3200),
+    
+    background = CitchCreamBg,
+    onBackground = CitchEspresso,
+    
+    surface = Color.White,
+    onSurface = CitchEspresso,
+    surfaceVariant = CitchWarmSurfaceVariant,
+    onSurfaceVariant = CitchCocoa,
+    
+    outline = CitchCardBorder,
+    outlineVariant = Color(0xFFE5DDD3),
+    error = Color(0xFFBA1A1A),
+    onError = Color.White
 )
 
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Set to false to enforce our custom exquisite gourmet branding
+    dynamicColor: Boolean = false, // Enforce our custom vibrant culinary color scheme
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

@@ -18,6 +18,8 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +38,7 @@ object CitchFirebaseService {
     private var isInitialized = false
     private var auth: FirebaseAuth? = null
     private var db: FirebaseFirestore? = null
+    private var storage: FirebaseStorage? = null
     private var messaging: FirebaseMessaging? = null
     private var appContext: Context? = null
 
@@ -104,6 +107,7 @@ object CitchFirebaseService {
             if (app != null) {
                 auth = FirebaseAuth.getInstance(app)
                 db = FirebaseFirestore.getInstance(app)
+                storage = try { FirebaseStorage.getInstance(app) } catch (e: Exception) { null }
                 messaging = try { FirebaseMessaging.getInstance() } catch (e: Exception) { null }
                 isInitialized = true
 
@@ -429,7 +433,122 @@ object CitchFirebaseService {
     }
 
     private fun String?.isNull_or_blank_safe(): Boolean = this == null || this.trim().isEmpty()
+
+    // ==================== 4. FIREBASE STORAGE & DISH GALLERY ====================
+
+    fun uploadDishImageToStorage(
+        context: Context,
+        imageUri: android.net.Uri,
+        caption: String,
+        onComplete: (Boolean, String, String?) -> Unit
+    ) {
+        val storageRef = storage?.reference?.child("dishes/DISH_${System.currentTimeMillis()}.jpg")
+        if (storageRef == null) {
+            onComplete(false, "Firebase Storage offline or uninitialized. Image saved locally.", null)
+            return
+        }
+
+        try {
+            storageRef.putFile(imageUri)
+                .addOnSuccessListener {
+                    storageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
+                        val urlStr = downloadUrl.toString()
+                        saveDishToFirestore(imageUri.lastPathSegment ?: "Dish", urlStr, caption)
+                        onComplete(true, "Successfully uploaded to Firebase Storage!", urlStr)
+                    }.addOnFailureListener {
+                        onComplete(true, "Photo uploaded to Storage!", null)
+                    }
+                }
+                .addOnFailureListener { e ->
+                    onComplete(false, "Storage upload failed: ${e.localizedMessage}", null)
+                }
+        } catch (e: Exception) {
+            onComplete(false, "Upload error: ${e.localizedMessage}", null)
+        }
+    }
+
+    private fun saveDishToFirestore(name: String, imageUrl: String, caption: String) {
+        val docData = mapOf(
+            "name" to name,
+            "imageUrl" to imageUrl,
+            "caption" to caption,
+            "timestamp" to System.currentTimeMillis()
+        )
+        db?.collection("showcase_dishes")?.document("dish_${System.currentTimeMillis()}")?.set(docData)
+    }
+
+    fun fetchDishesFromStorage(onResult: (List<DishStorageItem>) -> Unit) {
+        val dbRef = db
+        val storageInstance = storage
+
+        if (dbRef != null) {
+            dbRef.collection("showcase_dishes")
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    val list = snapshot.documents.mapNotNull { doc ->
+                        val url = doc.getString("imageUrl") ?: return@mapNotNull null
+                        val caption = doc.getString("caption") ?: "Showcase Dish"
+                        val name = doc.getString("name") ?: doc.id
+                        val ts = doc.getLong("timestamp") ?: System.currentTimeMillis()
+                        DishStorageItem(name, url, caption, ts)
+                    }
+                    if (list.isNotEmpty()) {
+                        onResult(list.sortedByDescending { it.timestamp })
+                    } else {
+                        fetchDirectFromStorageBucket(storageInstance, onResult)
+                    }
+                }
+                .addOnFailureListener {
+                    fetchDirectFromStorageBucket(storageInstance, onResult)
+                }
+        } else {
+            fetchDirectFromStorageBucket(storageInstance, onResult)
+        }
+    }
+
+    private fun fetchDirectFromStorageBucket(storageInstance: FirebaseStorage?, onResult: (List<DishStorageItem>) -> Unit) {
+        val folderRef = storageInstance?.reference?.child("dishes")
+        if (folderRef == null) {
+            onResult(emptyList())
+            return
+        }
+
+        folderRef.listAll()
+            .addOnSuccessListener { listResult ->
+                val items = mutableListOf<DishStorageItem>()
+                val total = listResult.items.size
+                if (total == 0) {
+                    onResult(emptyList())
+                    return@addOnSuccessListener
+                }
+                var completed = 0
+                for (ref in listResult.items) {
+                    ref.downloadUrl.addOnSuccessListener { url ->
+                        items.add(DishStorageItem(name = ref.name, imageUrl = url.toString(), caption = "Delicious Home Dish"))
+                        completed++
+                        if (completed == total) {
+                            onResult(items.sortedByDescending { it.name })
+                        }
+                    }.addOnFailureListener {
+                        completed++
+                        if (completed == total) {
+                            onResult(items.sortedByDescending { it.name })
+                        }
+                    }
+                }
+            }
+            .addOnFailureListener {
+                onResult(emptyList())
+            }
+    }
 }
+
+data class DishStorageItem(
+    val name: String,
+    val imageUrl: String,
+    val caption: String = "Showcase Dish",
+    val timestamp: Long = System.currentTimeMillis()
+)
 
 /**
  * Firebase Cloud Messaging Background Service

@@ -17,7 +17,13 @@ data class ChefEntity(
     val avatarUrl: String,
     val latitude: Double,
     val longitude: Double,
-    val followersCount: Int = 114
+    val followersCount: Int = 114,
+    val paypalEmail: String = "",
+    val isSponsored: Boolean = false,
+    val isChefOfTheWeek: Boolean = false,
+    val isProTier: Boolean = false,
+    val commissionRate: Double = 0.15,
+    val sponsoredUntil: Long = 0L
 )
 
 @Entity(tableName = "meals")
@@ -48,7 +54,12 @@ data class OrderEntity(
     val status: String, // "Pending", "Preparing", "Out for Delivery", "Delivered"
     val step: Int, // 0 to 3
     val paymentId: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val subtotal: Double = totalAmount,
+    val platformFee: Double = 0.0,
+    val deliveryFee: Double = 0.0,
+    val discountAmount: Double = 0.0,
+    val chefEarnings: Double = totalAmount - platformFee
 )
 
 @Entity(tableName = "reviews")
@@ -79,4 +90,18 @@ data class ChatMessageEntity(
     val text: String,
     val timestamp: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "chef_payouts")
+data class ChefPayoutEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val chefId: Int,
+    val chefName: String,
+    val paypalEmail: String,
+    val amount: Double,
+    val status: String = "COMPLETED", // "COMPLETED", "PROCESSING", "FAILED"
+    val payoutBatchId: String,
+    val note: String = "PayPal Instant Payout",
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 

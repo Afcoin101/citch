@@ -20,7 +20,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         // Initialize Firebase Authentication, Firestore DB sync, and FCM Push Notifications
-        CitchFirebaseService.initialize(this)
+        try {
+            CitchFirebaseService.initialize(this)
+        } catch (e: Throwable) {
+            // Guard against initialization issues on startup
+        }
 
         // Setup full Edge to Edge bleed drawing
         enableEdgeToEdge()

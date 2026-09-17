@@ -26,8 +26,17 @@ interface HomeChefDao {
     @Query("SELECT * FROM chefs WHERE id = :chefId")
     fun getChefById(chefId: Int): Flow<ChefEntity?>
 
+    @Query("SELECT * FROM chefs WHERE name LIKE :name LIMIT 1")
+    suspend fun getChefByName(name: String): ChefEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertChef(chef: ChefEntity): Long
+
+    @Update
+    suspend fun updateChef(chef: ChefEntity)
+
+    @Query("UPDATE chefs SET avatarUrl = :avatarUrl WHERE id = :chefId")
+    suspend fun updateChefAvatar(chefId: Int, avatarUrl: String)
 
     @Query("SELECT * FROM meals")
     fun getAllMeals(): Flow<List<MealEntity>>
@@ -35,8 +44,14 @@ interface HomeChefDao {
     @Query("SELECT * FROM meals WHERE chefId = :chefId")
     fun getMealsByChef(chefId: Int): Flow<List<MealEntity>>
 
+    @Query("SELECT * FROM meals WHERE name LIKE :name LIMIT 1")
+    suspend fun getMealByName(name: String): MealEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMeal(meal: MealEntity): Long
+
+    @Update
+    suspend fun updateMeal(meal: MealEntity)
 
     @Query("SELECT * FROM orders ORDER BY id DESC")
     fun getAllOrders(): Flow<List<OrderEntity>>
@@ -73,6 +88,27 @@ interface HomeChefDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertChatMessage(message: ChatMessageEntity): Long
+
+    @Query("SELECT * FROM chef_payouts WHERE chefId = :chefId ORDER BY timestamp DESC")
+    fun getPayoutsForChef(chefId: Int): Flow<List<ChefPayoutEntity>>
+
+    @Query("SELECT * FROM chef_payouts ORDER BY timestamp DESC")
+    fun getAllPayouts(): Flow<List<ChefPayoutEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPayout(payout: ChefPayoutEntity): Long
+
+    @Query("UPDATE chefs SET paypalEmail = :paypalEmail WHERE id = :chefId")
+    suspend fun updateChefPaypalEmail(chefId: Int, paypalEmail: String)
+
+    @Query("UPDATE chefs SET isSponsored = :sponsored, sponsoredUntil = :until WHERE id = :chefId")
+    suspend fun updateChefSponsorship(chefId: Int, sponsored: Boolean, until: Long)
+
+    @Query("UPDATE chefs SET isProTier = :isPro, commissionRate = :rate WHERE id = :chefId")
+    suspend fun updateChefProTier(chefId: Int, isPro: Boolean, rate: Double)
+
+    @Query("UPDATE chefs SET isChefOfTheWeek = (CASE WHEN id = :chefId THEN 1 ELSE 0 END)")
+    suspend fun setChefOfTheWeek(chefId: Int)
 }
 
 @Database(
@@ -82,9 +118,10 @@ interface HomeChefDao {
         OrderEntity::class,
         ReviewEntity::class,
         AlertEntity::class,
-        ChatMessageEntity::class
+        ChatMessageEntity::class,
+        ChefPayoutEntity::class
     ],
-    version = 9,
+    version = 11,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -152,7 +189,11 @@ abstract class AppDatabase : RoomDatabase() {
                     avatarUrl = "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=150",
                     latitude = 37.7812,
                     longitude = -122.4111,
-                    followersCount = 284
+                    followersCount = 284,
+                    paypalEmail = "elena.rostova@italianclassics.org",
+                    isSponsored = true,
+                    isProTier = true,
+                    commissionRate = 0.08
                 )
             ).toInt()
 
@@ -170,7 +211,8 @@ abstract class AppDatabase : RoomDatabase() {
                     avatarUrl = "https://images.unsplash.com/photo-1581092921461-eab62e97a780?w=150",
                     latitude = 37.7712,
                     longitude = -122.4015,
-                    followersCount = 390
+                    followersCount = 390,
+                    paypalEmail = "kenji.sato@ramencraft.jp"
                 )
             ).toInt()
 
@@ -188,7 +230,8 @@ abstract class AppDatabase : RoomDatabase() {
                     avatarUrl = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
                     latitude = 37.7612,
                     longitude = -122.4350,
-                    followersCount = 195
+                    followersCount = 195,
+                    paypalEmail = "maria.hernandez@oaxacankitchen.mx"
                 )
             ).toInt()
 
@@ -206,7 +249,8 @@ abstract class AppDatabase : RoomDatabase() {
                     avatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
                     latitude = 37.7580,
                     longitude = -122.4220,
-                    followersCount = 512
+                    followersCount = 512,
+                    paypalEmail = "dev.patel@spicemission.com"
                 )
             ).toInt()
 
@@ -224,7 +268,12 @@ abstract class AppDatabase : RoomDatabase() {
                     avatarUrl = "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=150",
                     latitude = 37.7794,
                     longitude = -122.4294,
-                    followersCount = 310
+                    followersCount = 310,
+                    paypalEmail = "chinelo.obi@westafricanflavour.com",
+                    isChefOfTheWeek = true,
+                    isSponsored = true,
+                    isProTier = true,
+                    commissionRate = 0.08
                 )
             ).toInt()
 
@@ -242,7 +291,8 @@ abstract class AppDatabase : RoomDatabase() {
                     avatarUrl = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150",
                     latitude = 37.7699,
                     longitude = -122.4468,
-                    followersCount = 245
+                    followersCount = 245,
+                    paypalEmail = "kofi.mensah@accrakitchen.gh"
                 )
             ).toInt()
 
@@ -260,7 +310,30 @@ abstract class AppDatabase : RoomDatabase() {
                     avatarUrl = "https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150",
                     latitude = 37.7829,
                     longitude = -122.4612,
-                    followersCount = 375
+                    followersCount = 375,
+                    paypalEmail = "layla.haddad@levantinetable.com"
+                )
+            ).toInt()
+
+            val chef8Id = dao.insertChef(
+                ChefEntity(
+                    id = 8,
+                    name = "Chef Wei Zhang",
+                    rating = 4.96f,
+                    address = "Chinatown Heritage Kitchen - 820 Grant Ave",
+                    cuisineType = "Authentic Chinese & Sichuan Specialties",
+                    phone = "+1 (555) 234-8899",
+                    bio = "Chef Wei brings over two decades of wok mastery from Chengdu and Guangzhou. Specializes in hand-pinched dim sum dumplings, authentic Sichuan Mapo Tofu, and sizzling Kung Pao chicken.",
+                    youtubeChannelUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk",
+                    youtubeChannelName = "Chef Wei's Wok Craft",
+                    avatarUrl = "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=150",
+                    latitude = 37.7941,
+                    longitude = -122.4078,
+                    followersCount = 460,
+                    paypalEmail = "wei.zhang@wokcraft.cn",
+                    isSponsored = true,
+                    isProTier = true,
+                    commissionRate = 0.08
                 )
             ).toInt()
 
@@ -1001,6 +1074,88 @@ abstract class AppDatabase : RoomDatabase() {
                 )
             )
 
+            // Chef 3 (Mexican) Dishes
+            dao.insertMeal(
+                MealEntity(
+                    id = 124,
+                    chefId = chef3Id,
+                    name = "Street Birria Beef Tacos",
+                    description = "Three griddled corn tortillas filled with slow-cooked shredded birria beef, melted Oaxaca cheese, fresh cilantro, and diced onion. Served with rich savory consomé broth for dipping.",
+                    price = 15.00,
+                    imageUrl = "tacos",
+                    category = "Mexico",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=Q73uWbAArI0"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 125,
+                    chefId = chef3Id,
+                    name = "Enchiladas Verdes with Salsa Tomatillo",
+                    description = "Rolled corn tortillas stuffed with tender shredded chicken breast, baked in fire-roasted tomatillo salsa verde, cotija cheese, Mexican crema, and fresh cilantro.",
+                    price = 14.50,
+                    imageUrl = "enchiladas",
+                    category = "Mexico",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=Q73uWbAArI0"
+                )
+            )
+
+            // Chef 8 (Chinese) Dishes
+            dao.insertMeal(
+                MealEntity(
+                    id = 120,
+                    chefId = chef8Id,
+                    name = "Hand-Crafted Steamed Dim Sum Dumplings",
+                    description = "Delicate handmade pork and shrimp dumplings steamed in traditional bamboo baskets. Served with rich chili crisp oil, black vinegar, and fresh scallions.",
+                    price = 15.50,
+                    imageUrl = "dumpling",
+                    category = "China",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 121,
+                    chefId = chef8Id,
+                    name = "Sizzling Kung Pao Chicken",
+                    description = "Wok-tossed tender chicken thigh cubes with roasted crunchy peanuts, red Sichuan chilies, and scallions in a glossy sweet, tangy, and spicy brown sauce.",
+                    price = 16.50,
+                    imageUrl = "kung pao",
+                    category = "China",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 122,
+                    chefId = chef8Id,
+                    name = "Authentic Sichuan Mapo Tofu",
+                    description = "Silky soft tofu simmered in a fiery, numbing Sichuan peppercorn and broad bean chili paste broth with savory minced beef and fresh scallions.",
+                    price = 14.00,
+                    imageUrl = "mapo tofu",
+                    category = "China",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+            dao.insertMeal(
+                MealEntity(
+                    id = 123,
+                    chefId = chef8Id,
+                    name = "Hand-Pulled Dan Dan Noodles",
+                    description = "Chewy wheat noodles in a fragrant spiced sesame-chili sauce, crowned with crispy spiced pork crumbles, baby bok choy, and crushed peanuts.",
+                    price = 13.50,
+                    imageUrl = "noodles",
+                    category = "China",
+                    isAvailable = true,
+                    tutorialVideoUrl = "https://www.youtube.com/watch?v=FLeSREbZ7Rk"
+                )
+            )
+
             // Pre-populate Reviews to establish trust immediately
             dao.insertReview(
                 ReviewEntity(
@@ -1100,6 +1255,68 @@ abstract class AppDatabase : RoomDatabase() {
                     title = "Welcome to D-KITCN!",
                     message = "Discover authentic, gourmet home-prepared meals prepared passionately by master food enthusiasts right in your neighborhood. Enjoy direct tracking, tutorial videos, and trust reviews!",
                     isRead = false
+                )
+            )
+
+            // Pre-populate realistic completed orders paid via PayPal
+            dao.insertOrder(
+                OrderEntity(
+                    id = 101,
+                    mealId = 1,
+                    mealName = "Rustic Lasagna Bolognese",
+                    chefId = chef1Id,
+                    chefName = "Chef Elena Rostova",
+                    quantity = 2,
+                    totalAmount = 33.00,
+                    buyerName = "Jessica Taylor",
+                    buyerAddress = "55 Market St, Apt 4B",
+                    buyerPhone = "+1 (555) 234-9810",
+                    status = "Delivered",
+                    step = 3,
+                    paymentId = "PAYID-PP-ELENA-9941"
+                )
+            )
+            dao.insertOrder(
+                OrderEntity(
+                    id = 102,
+                    mealId = 4,
+                    mealName = "Black Garlic Tonkotsu Ramen",
+                    chefId = chef2Id,
+                    chefName = "Chef Kenji Sato",
+                    quantity = 2,
+                    totalAmount = 35.00,
+                    buyerName = "David Chen",
+                    buyerAddress = "720 Howard St, Suite 12",
+                    buyerPhone = "+1 (555) 876-1209",
+                    status = "Delivered",
+                    step = 3,
+                    paymentId = "PAYID-PP-KENJI-4102"
+                )
+            )
+
+            // Pre-populate completed PayPal Payouts to chefs
+            dao.insertPayout(
+                ChefPayoutEntity(
+                    id = 1,
+                    chefId = chef1Id,
+                    chefName = "Chef Elena Rostova",
+                    paypalEmail = "elena.rostova@italianclassics.org",
+                    amount = 85.00,
+                    status = "COMPLETED",
+                    payoutBatchId = "PAYOUT-BATCH-IT9941",
+                    note = "Weekly Kitchen Sales Payout"
+                )
+            )
+            dao.insertPayout(
+                ChefPayoutEntity(
+                    id = 2,
+                    chefId = chef2Id,
+                    chefName = "Chef Kenji Sato",
+                    paypalEmail = "kenji.sato@ramencraft.jp",
+                    amount = 62.50,
+                    status = "COMPLETED",
+                    payoutBatchId = "PAYOUT-BATCH-JP4102",
+                    note = "Ramen Orders Weekly Transfer"
                 )
             )
         }

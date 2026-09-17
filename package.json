@@ -1,0 +1,17 @@
+{
+  "name": "citch-applet",
+  "version": "1.0.0",
+  "description": "Citch Home Chef Platform & Google Play Asset Portal",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "stripe": "^14.22.0"
+  }
+}
